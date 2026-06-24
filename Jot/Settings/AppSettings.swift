@@ -102,6 +102,16 @@ class AppSettings: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
+    @UserDefault(SettingsKeys.enableMacros, defaultValue: true)
+    var enableMacros: Bool {
+        willSet { objectWillChange.send() }
+    }
+
+    @UserDefault(SettingsKeys.overlayOpacity, defaultValue: 0.42)
+    var overlayOpacity: Double {
+        willSet { objectWillChange.send() }
+    }
+
     @UserDefault(SettingsKeys.debugMode, defaultValue: false)
     var debugMode: Bool {
         willSet { objectWillChange.send() }

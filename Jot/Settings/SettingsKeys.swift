@@ -16,6 +16,8 @@ enum SettingsKeys {
     static let enableMidLine = "enableMidLine"
     static let debugMode = "debugMode"
     static let blockedBundleIDs = "blockedBundleIDs"
+    static let enableMacros = "enableMacros"
+    static let overlayOpacity = "overlayOpacity"
     static let statsAcceptedAllTime = "statsAcceptedAllTime"
     static let statsWordsSavedAllTime = "statsWordsSavedAllTime"
     static let statsLatencySamples = "statsLatencySamples"

@@ -85,6 +85,14 @@ class EventTapManager {
             return nil  // consume — do not pass Tab to the app
         }
 
+        // ── Backtick ───────────────────────────────────────────────────────────
+        // Backtick = accept full suggestion (matches cotabby UX)
+        if keyCode == 50 {
+            guard hasSuggestion else { return Unmanaged.passRetained(event) }
+            DispatchQueue.main.async { [weak self] in self?.completionEngine?.acceptFull() }
+            return nil
+        }
+
         // ── Escape ─────────────────────────────────────────────────────────────
         if keyCode == 53 {
             guard hasSuggestion else { return Unmanaged.passRetained(event) }

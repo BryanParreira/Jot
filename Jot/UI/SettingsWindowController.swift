@@ -790,7 +790,9 @@ private class PersonalizationPage: SettingsPage {
         card([
             textAreaRow("Custom Instructions",
                         value: AppSettings.shared.customInstructions,
-                        placeholder: "Describe your role, audience, and writing tone…"),
+                        placeholder: "Describe your role, audience, and writing tone…") {
+                AppSettings.shared.customInstructions = $0
+            },
         ])
 
         addSpacer(10)
@@ -804,9 +806,9 @@ private class PersonalizationPage: SettingsPage {
         ])
     }
 
-    private func textAreaRow(_ label: String, value: String, placeholder: String) -> NSView {
+    private func textAreaRow(_ label: String, value: String, placeholder: String, setter: @escaping (String) -> Void) -> NSView {
         let container = NSView()
-        container.heightAnchor.constraint(equalToConstant: 80).isActive = true
+        container.heightAnchor.constraint(equalToConstant: 90).isActive = true
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let lbl = NSTextField(labelWithString: label)
@@ -816,7 +818,7 @@ private class PersonalizationPage: SettingsPage {
         let sv = NSScrollView()
         sv.hasVerticalScroller = true
         sv.autohidesScrollers = true
-        sv.borderType = .noBorder
+        sv.borderType = .bezelBorder
         sv.translatesAutoresizingMaskIntoConstraints = false
 
         let tv = NSTextView()
@@ -824,17 +826,23 @@ private class PersonalizationPage: SettingsPage {
         tv.font = NSFont.systemFont(ofSize: 12)
         tv.isRichText = false
         tv.textContainerInset = NSSize(width: 4, height: 4)
+        tv.isAutomaticQuoteSubstitutionEnabled = false
+        tv.isAutomaticDashSubstitutionEnabled = false
         sv.documentView = tv
+
+        let delegate = TextAreaDelegate(setter: setter)
+        tv.delegate = delegate
+        objc_setAssociatedObject(container, &textAreaDelegateKey, delegate, .OBJC_ASSOCIATION_RETAIN)
 
         container.addSubview(lbl)
         container.addSubview(sv)
         NSLayoutConstraint.activate([
             lbl.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
             lbl.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            sv.topAnchor.constraint(equalTo: container.topAnchor),
+            sv.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
             sv.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 110),
             sv.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-            sv.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            sv.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
         ])
         return container
     }
@@ -861,6 +869,10 @@ private class FeaturesPage: SettingsPage {
 
         sectionLabel("Suggestions")
         card([
+            toggleRow("Inline Macros",
+                      subtitle: "/date, /time, /now, /uuid, /rand, /year — Tab to expand",
+                      getter: { AppSettings.shared.enableMacros },
+                      setter: { AppSettings.shared.enableMacros = $0 }),
             toggleRow("Emoji Shortcuts",
                       subtitle: "Type :rocket and Tab inserts 🚀",
                       getter: { AppSettings.shared.enableEmoji },
@@ -876,11 +888,21 @@ private class FeaturesPage: SettingsPage {
         ])
 
         addSpacer(10)
+        sectionLabel("Ghost Text")
+        card([
+            sliderRow("Opacity", min: 0.15, max: 0.80,
+                      current: AppSettings.shared.overlayOpacity,
+                      format: { "\(Int($0 * 100))%" }) {
+                AppSettings.shared.overlayOpacity = $0
+            },
+        ])
+
+        addSpacer(10)
         sectionLabel("Keyboard Shortcuts")
         card([
-            shortcutRow("Accept Suggestion", key: "Tab"),
-            shortcutRow("Accept Next Word",   key: "Shift + Tab"),
-            shortcutRow("Dismiss",            key: "Escape"),
+            shortcutRow("Accept Word by Word", key: "Tab"),
+            shortcutRow("Accept Full Suggestion", key: "` or Shift + Tab"),
+            shortcutRow("Dismiss",               key: "Escape"),
         ])
     }
 
@@ -1009,5 +1031,16 @@ private class TextChangeDelegate: NSObject, NSTextFieldDelegate {
     init(block: @escaping (String) -> Void) { self.block = block }
     func controlTextDidChange(_ n: Notification) {
         (n.object as? NSTextField).map { block($0.stringValue) }
+    }
+}
+
+private var textAreaDelegateKey: UInt8 = 0
+
+private class TextAreaDelegate: NSObject, NSTextViewDelegate {
+    let setter: (String) -> Void
+    init(setter: @escaping (String) -> Void) { self.setter = setter }
+    func textDidChange(_ notification: Notification) {
+        guard let tv = notification.object as? NSTextView else { return }
+        setter(tv.string)
     }
 }

@@ -9,6 +9,7 @@ enum SuggestionKind {
     case llm
     case emoji(triggerText: String)
     case typo(badWord: String)
+    case macro(triggerText: String)
 }
 
 @MainActor
@@ -19,6 +20,7 @@ class CompletionEngine: ObservableObject {
     private let contextBuilder = ContextBuilder()
     private let emojiProvider = EmojiProvider()
     private let typoDetector = TypoDetector()
+    private let macroProvider = MacroProvider()
     private let overlay = SuggestionOverlay.shared
 
     // Single reusable debounce timer — cancel/reschedule, never recreate
@@ -80,6 +82,16 @@ class CompletionEngine: ObservableObject {
 
         lastElement = element
         lastCursorRect = accessibilityManager.cursorScreenRect(in: element)
+
+        // Macros — instant, no network (/date, /time, /now, /uuid, /rand, /year)
+        if AppSettings.shared.enableMacros,
+           let macro = macroProvider.check(textBefore: textBefore) {
+            showSuggestion(macro.suggestion,
+                           kind: .macro(triggerText: macro.triggerText),
+                           cursorRect: lastCursorRect,
+                           element: element)
+            return
+        }
 
         // Emoji — instant, no network
         if AppSettings.shared.enableEmoji,
@@ -201,6 +213,10 @@ class CompletionEngine: ObservableObject {
         case .typo(let badWord):
             accessibilityManager.deleteTextBeforeCursor(count: badWord.count, in: element)
             accessibilityManager.insertText(suggestion, into: element)
+
+        case .macro(let triggerText):
+            accessibilityManager.deleteTextBeforeCursor(count: triggerText.count, in: element)
+            accessibilityManager.insertText(suggestion, into: element)
         }
 
         PersonalizationStore.shared.recordAccepted(suggestion)
@@ -209,10 +225,10 @@ class CompletionEngine: ObservableObject {
     }
 
     func acceptNextWord() {
-        guard var suggestion = currentSuggestion, let element = lastElement else { return }
+        guard let suggestion = currentSuggestion, let element = lastElement else { return }
 
         switch currentKind {
-        case .emoji, .typo: acceptFull(); return
+        case .emoji, .typo, .macro: acceptFull(); return
         case .llm: break
         }
 

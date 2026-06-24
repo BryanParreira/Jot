@@ -62,7 +62,7 @@ class SuggestionOverlay: NSPanel {
 
         label.stringValue = suggestion
         label.font        = displayFont
-        label.textColor   = color.withAlphaComponent(0.42)
+        label.textColor   = color.withAlphaComponent(AppSettings.shared.overlayOpacity)
 
         let attrs = [NSAttributedString.Key.font: displayFont]
         let textW = min((suggestion as NSString).size(withAttributes: attrs).width + 2, 720)
