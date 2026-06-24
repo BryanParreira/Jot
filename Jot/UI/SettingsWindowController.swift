@@ -22,11 +22,11 @@ struct RecommendedModel {
 }
 
 let recommendedModels: [RecommendedModel] = [
-    .init(name: "qwen2.5:1.5b", ram: "8 GB",  quality: "Fast",   note: "Best for low-RAM Macs"),
-    .init(name: "gemma2:2b",    ram: "8 GB",  quality: "Fast",   note: "Compact, low RAM"),
-    .init(name: "phi3.5:mini",  ram: "16 GB", quality: "Better", note: "Great balance on M-series"),
+    .init(name: "qwen2.5:1.5b", ram: "8 GB",  quality: "Fast",   note: "Fastest — good for older Macs"),
+    .init(name: "gemma3:2b",    ram: "8 GB",  quality: "Fast",   note: "⭐ Recommended · best quality/speed"),
     .init(name: "qwen2.5:3b",   ram: "16 GB", quality: "Better", note: "Strong code & writing"),
-    .init(name: "llama3.2:3b",  ram: "16 GB", quality: "Better", note: "Excellent English fluency"),
+    .init(name: "gemma3:latest", ram: "16 GB", quality: "Better", note: "Gemma 3 4B — excellent fluency"),
+    .init(name: "llama3.2:3b",  ram: "16 GB", quality: "Better", note: "Great English fluency"),
     .init(name: "qwen2.5:7b",   ram: "32 GB", quality: "Best",   note: "Near-perfect completions"),
     .init(name: "mistral:7b",   ram: "32 GB", quality: "Best",   note: "Excellent general writing"),
 ]
@@ -293,9 +293,9 @@ private class SettingsPage: NSViewController {
         return row
     }
 
-    func segmentedRow(_ label: String, options: [String], selected: Int, setter: @escaping (Int) -> Void) -> NSView {
+    func segmentedRow(_ label: String, subtitle: String? = nil, options: [String], selected: Int, setter: @escaping (Int) -> Void) -> NSView {
         let row = SettingsRow()
-        row.addLabel(label)
+        row.addLabel(label, subtitle: subtitle)
         let seg = NSSegmentedControl(labels: options, trackingMode: .selectOne, target: nil, action: nil)
         seg.selectedSegment = selected
         seg.onAction { c in setter((c as! NSSegmentedControl).selectedSegment) }
@@ -479,6 +479,7 @@ private class GeneralPage: SettingsPage {
                 AppSettings.shared.debounceMs = Int($0)
             },
             segmentedRow("Completion Length",
+                         subtitle: "Short ~1–2 words · Medium ~2–4 words · Long ~6–8 words",
                          options: ["Short", "Medium", "Long"],
                          selected: ["short": 0, "medium": 1, "long": 2][AppSettings.shared.completionLength] ?? 1) {
                 AppSettings.shared.completionLength = ["short", "medium", "long"][$0]

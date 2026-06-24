@@ -115,19 +115,20 @@ class CompletionEngine: ObservableObject {
             bundleID: accessibilityManager.focusedAppBundleID()
         )
 
+        // Cotypist uses 2–4 word target for Medium — fewer tokens = faster first token = snappier UX
         let numPredict: Int
         switch settings.completionLength {
-        case "short": numPredict = 10
-        case "long":  numPredict = 40
-        default:      numPredict = 20
+        case "short": numPredict = 6   // ~1–2 words
+        case "long":  numPredict = 20  // ~6–8 words
+        default:      numPredict = 10  // ~2–4 words (Cotypist Medium)
         }
 
         let options = OllamaOptions(
-            temperature: 0.12,
-            topP: 0.9,
+            temperature: 0.10,
+            topP: 0.85,
             numPredict: numPredict,
             numCtx: 2048,
-            stop: ["\n", "\n\n", "```", " ---", "  "]
+            stop: ["\n", "\n\n", "```", "  "]
         )
 
         pendingTask?.cancel()
@@ -239,15 +240,13 @@ class CompletionEngine: ObservableObject {
             return
         }
 
-        currentSuggestion = rest
-        overlay.update(suggestion: rest)
-
-        // Advance overlay right by the width of accepted text — no need to wait for AX
+        // Single atomic render: shift overlay right + update remaining text (no flicker)
         let font = accessibilityManager.fontForElement(element)
             ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
         let attrs = [NSAttributedString.Key.font: font]
         let acceptedWidth = (toInsert as NSString).size(withAttributes: attrs).width
-        overlay.advanceCursorX(by: acceptedWidth)
+        currentSuggestion = rest
+        overlay.advanceAfterAccepting(remaining: rest, acceptedWidth: acceptedWidth)
     }
 
     func dismiss() {

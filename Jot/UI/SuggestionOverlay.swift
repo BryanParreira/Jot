@@ -112,14 +112,28 @@ class SuggestionOverlay: NSPanel {
         display()
     }
 
-    /// Shift overlay right after a word is accepted so it tracks the new cursor position.
-    func advanceCursorX(by width: CGFloat) {
+    /// Atomically shift overlay right AND update remaining text — single render, no flicker.
+    func advanceAfterAccepting(remaining: String, acceptedWidth: CGFloat) {
         guard isVisible else { return }
+
+        if remaining.isEmpty {
+            dismiss()
+            return
+        }
+
+        currentSuggestion = remaining
+        label.stringValue  = remaining
+
+        let font  = label.font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let attrs = [NSAttributedString.Key.font: font]
+        let newW  = min((remaining as NSString).size(withAttributes: attrs).width + 2, 720)
+
+        // All geometry changes before the single display() call — no intermediate frame shown
         var r = frame
-        r.origin.x += width
-        r.size.width = max(r.size.width - width, 1)
+        r.origin.x   += acceptedWidth
+        r.size.width  = newW
         setFrame(r, display: false)
-        label.frame.size.width = r.size.width
+        label.frame   = CGRect(x: 0, y: 0, width: newW, height: r.size.height)
         display()
     }
 
