@@ -210,45 +210,44 @@ class CompletionEngine: ObservableObject {
     func acceptNextWord() {
         guard var suggestion = currentSuggestion, let element = lastElement else { return }
 
-        // Emoji / typo — accept all at once
         switch currentKind {
-        case .emoji, .typo:
-            acceptFull()
-            return
-        case .llm:
-            break
+        case .emoji, .typo: acceptFull(); return
+        case .llm: break
         }
 
-        // Split on first word boundary
-        let words = suggestion.components(separatedBy: " ").filter { !$0.isEmpty }
-        guard let firstWord = words.first else { acceptFull(); return }
+        // Split at first space boundary
+        let trimmed = suggestion.hasPrefix(" ") ? String(suggestion.dropFirst()) : suggestion
+        let words   = trimmed.components(separatedBy: " ")
+        guard let first = words.first, !first.isEmpty else { acceptFull(); return }
 
-        let toInsert = firstWord + " "
+        // Preserve leading space if present (e.g. " world" after "Hello")
+        let leadingSpace = suggestion.hasPrefix(" ") ? " " : ""
+        let toInsert = leadingSpace + first + " "
+
         accessibilityManager.insertText(toInsert, into: element)
         PersonalizationStore.shared.recordAccepted(toInsert)
         StatsTracker.shared.recordAccepted(text: toInsert)
 
-        // Update remaining suggestion
-        if let range = suggestion.range(of: toInsert) {
-            suggestion.removeSubrange(range)
-        } else if let range = suggestion.range(of: firstWord) {
-            suggestion.removeSubrange(range)
+        // Build remaining suggestion
+        var rest = suggestion
+        if let r = rest.range(of: toInsert) { rest.removeSubrange(r) }
+        else if let r = rest.range(of: first) { rest.removeSubrange(r) }
+        rest = rest.trimmingCharacters(in: .init(charactersIn: " "))
+
+        if rest.isEmpty {
+            clearSuggestion()
+            return
         }
 
-        let remaining = suggestion.trimmingCharacters(in: .init(charactersIn: " "))
-        if remaining.isEmpty {
-            clearSuggestion()
-        } else {
-            currentSuggestion = remaining
-            let font = accessibilityManager.fontForElement(element)
-                ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-            let rect = accessibilityManager.cursorScreenRect(in: element) ?? lastCursorRect
-            if let rect = rect {
-                overlay.show(suggestion: remaining, at: rect, font: font, color: .placeholderTextColor)
-            } else {
-                overlay.update(suggestion: remaining)
-            }
-        }
+        currentSuggestion = rest
+        overlay.update(suggestion: rest)
+
+        // Advance overlay right by the width of accepted text — no need to wait for AX
+        let font = accessibilityManager.fontForElement(element)
+            ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let attrs = [NSAttributedString.Key.font: font]
+        let acceptedWidth = (toInsert as NSString).size(withAttributes: attrs).width
+        overlay.advanceCursorX(by: acceptedWidth)
     }
 
     func dismiss() {
@@ -284,50 +283,29 @@ class CompletionEngine: ObservableObject {
     private func postProcess(_ raw: String, textBefore: String) -> String {
         var result = raw
 
-        // Strip trailing newlines the model emits at stop sequence
-        while result.hasSuffix("\n") || result.hasSuffix("\r") {
-            result = String(result.dropLast())
-        }
+        // Strip surrounding newlines
+        while result.hasSuffix("\n") || result.hasSuffix("\r") { result = String(result.dropLast()) }
+        while result.hasPrefix("\n") || result.hasPrefix("\r") { result = String(result.dropFirst()) }
 
-        // Strip leading newlines
-        while result.hasPrefix("\n") || result.hasPrefix("\r") {
-            result = String(result.dropFirst())
-        }
-
-        // Strip leading space only when text already ends with whitespace
-        let endsWithSpace = textBefore.last.map(\.isWhitespace) ?? false
-        if endsWithSpace {
-            while result.hasPrefix(" ") { result = String(result.dropFirst()) }
-        }
-
-        // Strip wrapping quotes the model sometimes adds
+        // Strip wrapping quotes
         if result.hasPrefix("\"") && result.hasSuffix("\"") && result.count > 2 {
             result = String(result.dropFirst().dropLast())
         }
 
-        // Mid-word dedup: model sometimes echoes the partial word being typed.
-        // e.g. user typed "amaz", model emits "amazing things" → strip "amaz" prefix → "ing things"
+        // Mid-word dedup: model echoed the fragment already typed.
+        // e.g. user typed "amaz", model emits "amazing" → show only "ing"
+        let endsWithSpace = textBefore.last.map(\.isWhitespace) ?? false
         if !endsWithSpace {
             let fragment = textBefore
                 .components(separatedBy: CharacterSet.whitespacesAndNewlines)
                 .last ?? ""
-            if fragment.count >= 2 {
-                let fLower = fragment.lowercased()
-                let rLower = result.lowercased()
-                if rLower.hasPrefix(fLower) {
-                    result = String(result.dropFirst(fragment.count))
-                }
+            if fragment.count >= 2 && result.lowercased().hasPrefix(fragment.lowercased()) {
+                result = String(result.dropFirst(fragment.count))
             }
         }
 
-        // Reject obviously bad completions (pure punctuation or empty)
-        let stripped = result.trimmingCharacters(in: .whitespacesAndNewlines)
-        if stripped.isEmpty { return "" }
-        let firstChar = stripped.unicodeScalars.first.map { CharacterSet.letters.contains($0) } ?? false
-        let firstIsDigit = stripped.first?.isNumber ?? false
-        if !firstChar && !firstIsDigit && !endsWithSpace { return "" }
-
-        return result
+        // Reject empty result only
+        return result.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : result
     }
 
     private func cancelAll() {

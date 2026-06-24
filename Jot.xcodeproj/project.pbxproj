@@ -16,6 +16,7 @@
 		F03B8AB55C094F779F5A3644 /* DebounceTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268AA2603B114DC98F1C8918 /* DebounceTimer.swift */; };
 		4D9D09EFA72C468B8519A7F5 /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A3FA98F9044945A0486355 /* DebugLogger.swift */; };
 		CC44BB33AA22DD11EE00FF99 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC44BB33AA22DD11EE00FF00 /* UpdateChecker.swift */; };
+		EE11FF22AA33BB44CC55DD66 /* SynthesizedEventMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE11FF22AA33BB44CC55DD00 /* SynthesizedEventMarker.swift */; };
 		F0F6E32C8BA947DD89DEA4B0 /* EmojiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2D82BB73B749779F29CBDF /* EmojiProvider.swift */; };
 		E40DD9A863964997997A2553 /* TypoDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48844957A43C4797A76338B8 /* TypoDetector.swift */; };
 		11C35F10B91B44F6BFA714E6 /* PersonalizationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5B954F2022F48D2ACE76DAE /* PersonalizationStore.swift */; };
@@ -44,6 +45,7 @@
 		268AA2603B114DC98F1C8918 /* DebounceTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebounceTimer.swift; sourceTree = "<group>"; };
 		B8A3FA98F9044945A0486355 /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
 		CC44BB33AA22DD11EE00FF00 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
+		EE11FF22AA33BB44CC55DD00 /* SynthesizedEventMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynthesizedEventMarker.swift; sourceTree = "<group>"; };
 		2D2D82BB73B749779F29CBDF /* EmojiProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiProvider.swift; sourceTree = "<group>"; };
 		48844957A43C4797A76338B8 /* TypoDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypoDetector.swift; sourceTree = "<group>"; };
 		E5B954F2022F48D2ACE76DAE /* PersonalizationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalizationStore.swift; sourceTree = "<group>"; };
@@ -71,7 +73,7 @@
 		9243D7DDCE664CF984DDFE0A = {isa = PBXGroup; children = (339342780C2C453CAF18BF72 /* Jot */, 8F08065A13BF4C18A362F1BC /* Products */,); sourceTree = "<group>"; };
 		8F08065A13BF4C18A362F1BC /* Products */ = {isa = PBXGroup; children = (D3944DBA47DC48AAB9EC5E09 /* Jot.app */,); name = Products; sourceTree = "<group>"; };
 		339342780C2C453CAF18BF72 /* Jot */ = {isa = PBXGroup; children = (29D1837841CF42C99E03A567 /* main.swift */,3522AF51CB2C45C6BB53CBD6 /* AppDelegate.swift */,F5D2E289147344EA97A1ACF8 /* Info.plist */,EF4C22D686D94C958616174C /* Jot.entitlements */,AA11BB22CC33DD44EE55FF00 /* Assets.xcassets */,193018F860CB470E9A25FEE3 /* Core */,6D87DE50DFF44A7A80A4CEF1 /* Features */,66A01B75BBA24761949CB96E /* UI */,B73F585BAF4B403C885E8CDF /* Settings */,4A9B739518DB48508C85A790 /* Statistics */,B592665AD4CE4665A25A9965 /* Resources */,); path = Jot; sourceTree = "<group>"; };
-		193018F860CB470E9A25FEE3 /* Core */ = {isa = PBXGroup; children = (D70A55A7DC404EF7A8D8F1BD /* AccessibilityManager.swift */,5088324F2E534F57A3C5F551 /* EventTapManager.swift */,7B1F34B5565544DC816CD29F /* OllamaClient.swift */,99BE41C15D4148FA9B73F495 /* ContextBuilder.swift */,5FBAC0B68EF64D8D9E8AD87C /* CompletionEngine.swift */,268AA2603B114DC98F1C8918 /* DebounceTimer.swift */,B8A3FA98F9044945A0486355 /* DebugLogger.swift */,CC44BB33AA22DD11EE00FF00 /* UpdateChecker.swift */,); path = Core; sourceTree = "<group>"; };
+		193018F860CB470E9A25FEE3 /* Core */ = {isa = PBXGroup; children = (D70A55A7DC404EF7A8D8F1BD /* AccessibilityManager.swift */,5088324F2E534F57A3C5F551 /* EventTapManager.swift */,7B1F34B5565544DC816CD29F /* OllamaClient.swift */,99BE41C15D4148FA9B73F495 /* ContextBuilder.swift */,5FBAC0B68EF64D8D9E8AD87C /* CompletionEngine.swift */,268AA2603B114DC98F1C8918 /* DebounceTimer.swift */,B8A3FA98F9044945A0486355 /* DebugLogger.swift */,CC44BB33AA22DD11EE00FF00 /* UpdateChecker.swift */,EE11FF22AA33BB44CC55DD00 /* SynthesizedEventMarker.swift */,); path = Core; sourceTree = "<group>"; };
 		6D87DE50DFF44A7A80A4CEF1 /* Features */ = {isa = PBXGroup; children = (2D2D82BB73B749779F29CBDF /* EmojiProvider.swift */,48844957A43C4797A76338B8 /* TypoDetector.swift */,E5B954F2022F48D2ACE76DAE /* PersonalizationStore.swift */,18902EE47D31424BBACF0207 /* ClipboardMonitor.swift */,50D906BC44624751A60B0169 /* MidLineCompletion.swift */,); path = Features; sourceTree = "<group>"; };
 		66A01B75BBA24761949CB96E /* UI */ = {isa = PBXGroup; children = (D9CB72D3A0F6415791C76F88 /* SuggestionOverlay.swift */,CC60C0876EDD44D290C77394 /* MenuBarController.swift */,F316A01144AD4FDD840A9A4A /* SettingsWindowController.swift */,D40EE74BE2384C7A9A96E54A /* OnboardingWindowController.swift */,); path = UI; sourceTree = "<group>"; };
 		B73F585BAF4B403C885E8CDF /* Settings */ = {isa = PBXGroup; children = (34B1850A84634511B73FE88A /* AppSettings.swift */,79702B1C51C14C12A9DA8FC9 /* SettingsKeys.swift */,); path = Settings; sourceTree = "<group>"; };
@@ -119,6 +121,7 @@
 			F03B8AB55C094F779F5A3644 /* DebounceTimer.swift in Sources */,
 			4D9D09EFA72C468B8519A7F5 /* DebugLogger.swift in Sources */,
 			CC44BB33AA22DD11EE00FF99 /* UpdateChecker.swift in Sources */,
+			EE11FF22AA33BB44CC55DD66 /* SynthesizedEventMarker.swift in Sources */,
 			F0F6E32C8BA947DD89DEA4B0 /* EmojiProvider.swift in Sources */,
 			E40DD9A863964997997A2553 /* TypoDetector.swift in Sources */,
 			11C35F10B91B44F6BFA714E6 /* PersonalizationStore.swift in Sources */,

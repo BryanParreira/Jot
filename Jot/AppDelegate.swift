@@ -60,14 +60,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
 
     @MainActor
     private func startPermissionPolling() {
-        permissionPollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        permissionPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard AXIsProcessTrusted() else { return }
-            DispatchQueue.main.async { [weak self] in
+            // Permission just granted — relaunch so TCC changes take full effect
+            DispatchQueue.main.async {
                 self?.permissionPollTimer?.invalidate()
-                self?.permissionPollTimer = nil
-                self?.menuBarController?.clearPermissionWarning()
-                self?.initializeCore()
+                self?.relaunch()
             }
+        }
+    }
+
+    private func relaunch() {
+        let url = Bundle.main.bundleURL
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NSApp.terminate(nil)
         }
     }
 

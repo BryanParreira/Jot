@@ -51,23 +51,36 @@ class EventTapManager {
     // MARK: - Event handler (NOT on main thread)
 
     private func handleEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        // Re-enable tap if macOS disabled it (security timeout)
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+            return Unmanaged.passRetained(event)
+        }
+
         guard type == .keyDown else { return Unmanaged.passRetained(event) }
 
-        let keyCode  = event.getIntegerValueField(.keyboardEventKeycode)
-        let flags    = event.flags
+        // Ignore our own synthesized keystrokes (⌘V paste, simulateTyping, etc.)
+        if event.getIntegerValueField(.eventSourceUserData) == SynthesizedEventMarker.userData {
+            return Unmanaged.passRetained(event)
+        }
+
+        let keyCode   = event.getIntegerValueField(.keyboardEventKeycode)
+        let flags     = event.flags
         let hasSuggestion = hasPendingSuggestion
 
-        let hasCmd  = flags.contains(.maskCommand)
-        let hasCtrl = flags.contains(.maskControl)
+        let hasCmd   = flags.contains(.maskCommand)
+        let hasCtrl  = flags.contains(.maskControl)
         let hasShift = flags.contains(.maskShift)
 
         // ── Tab ────────────────────────────────────────────────────────────────
+        // Tab = accept next word (less aggressive, matches KeyType / Cotypist)
+        // Shift+Tab = accept full suggestion
         if keyCode == 48 {
             guard hasSuggestion else { return Unmanaged.passRetained(event) }
             if hasShift {
-                DispatchQueue.main.async { [weak self] in self?.completionEngine?.acceptNextWord() }
-            } else {
                 DispatchQueue.main.async { [weak self] in self?.completionEngine?.acceptFull() }
+            } else {
+                DispatchQueue.main.async { [weak self] in self?.completionEngine?.acceptNextWord() }
             }
             return nil  // consume — do not pass Tab to the app
         }

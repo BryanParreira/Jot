@@ -46,9 +46,12 @@ class MenuBarController {
             let warn = NSMenuItem(title: "⚠️  Accessibility access required", action: #selector(openAccessibilitySettings), keyEquivalent: "")
             warn.target = self
             menu.addItem(warn)
-            let sub = NSMenuItem(title: "    Open System Settings → fix this", action: #selector(openAccessibilitySettings), keyEquivalent: "")
+            let sub = NSMenuItem(title: "   → Open System Settings and enable Jot", action: #selector(openAccessibilitySettings), keyEquivalent: "")
             sub.target = self
             menu.addItem(sub)
+            let note = NSMenuItem(title: "   Jot restarts automatically once granted", action: nil, keyEquivalent: "")
+            note.isEnabled = false
+            menu.addItem(note)
             menu.addItem(.separator())
         }
 

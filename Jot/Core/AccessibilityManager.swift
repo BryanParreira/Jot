@@ -138,13 +138,50 @@ class AccessibilityManager {
     }
 
     func insertText(_ text: String, into element: AXUIElement) {
+        // Try AX direct insert (works for native AppKit fields)
         let result = AXUIElementSetAttributeValue(
-            element,
-            kAXSelectedTextAttribute as CFString,
-            text as CFTypeRef
+            element, kAXSelectedTextAttribute as CFString, text as CFTypeRef
         )
-        if result != .success {
-            simulateTyping(text)
+        if result == .success { return }
+        // Fall back to pasteboard paste (works in Chrome, Electron, web, etc.)
+        insertTextViaPasteboard(text)
+    }
+
+    /// Universal insertion: save pasteboard → write text → ⌘V → restore pasteboard.
+    /// Works in every app including Chrome, Electron, and web text fields.
+    func insertTextViaPasteboard(_ text: String) {
+        let pb = NSPasteboard.general
+
+        // Snapshot current pasteboard so we can restore it
+        struct SavedItem { let types: [NSPasteboard.PasteboardType]; let data: [NSPasteboard.PasteboardType: Data] }
+        let saved: [SavedItem] = pb.pasteboardItems?.map { item in
+            SavedItem(types: item.types, data: item.types.reduce(into: [:]) {
+                if let d = item.data(forType: $1) { $0[$1] = d }
+            })
+        } ?? []
+
+        pb.clearContents()
+        pb.setString(text, forType: .string)
+
+        // Synthesize ⌘V with our marker so the event tap ignores it
+        let source = CGEventSource(stateID: .combinedSessionState)
+        source?.userData = SynthesizedEventMarker.userData
+
+        let vDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
+        let vUp   = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
+        vDown?.flags = .maskCommand
+        vUp?.flags   = .maskCommand
+        vDown?.post(tap: .cghidEventTap)
+        vUp?.post(tap: .cghidEventTap)
+
+        // Restore pasteboard after 150ms (app needs time to read it before we restore)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            pb.clearContents()
+            for item in saved {
+                let pbItem = NSPasteboardItem()
+                for (type, data) in item.data { pbItem.setData(data, forType: type) }
+                pb.writeObjects([pbItem])
+            }
         }
     }
 
@@ -206,11 +243,12 @@ class AccessibilityManager {
 
     private func simulateTyping(_ text: String) {
         let source = CGEventSource(stateID: .hidSystemState)
+        source?.userData = SynthesizedEventMarker.userData  // prevent event tap from intercepting
         for char in text.unicodeScalars {
             let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
-            let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
+            let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
             keyDown?.keyboardSetUnicodeString(stringLength: 1, unicodeString: [UniChar(char.value)])
-            keyUp?.keyboardSetUnicodeString(stringLength: 1, unicodeString: [UniChar(char.value)])
+            keyUp?.keyboardSetUnicodeString(stringLength: 1,   unicodeString: [UniChar(char.value)])
             keyDown?.post(tap: .cghidEventTap)
             keyUp?.post(tap: .cghidEventTap)
         }

@@ -1,84 +1,91 @@
 import Cocoa
 
-class SuggestionOverlay: NSWindow {
+/// Borderless non-activating panel that renders inline ghost text next to the cursor.
+/// Lives at .screenSaver window level so it floats above all normal windows.
+class SuggestionOverlay: NSPanel {
+
     static let shared = SuggestionOverlay()
 
     private let label = NSTextField(labelWithString: "")
     private(set) var currentSuggestion: String?
-    private var dismissTimer: Timer?
+
+    // MARK: - Init
 
     private override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask,
                           backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
-        super.init(contentRect: .zero, styleMask: .borderless, backing: .buffered, defer: true)
+        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
+                   backing: .buffered, defer: true)
         setup()
     }
 
-    private init() {
-        super.init(contentRect: .zero, styleMask: .borderless, backing: .buffered, defer: true)
-        setup()
+    convenience init() {
+        self.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
+                  backing: .buffered, defer: true)
     }
 
     private func setup() {
-        isOpaque = false
-        backgroundColor = .clear
-        level = .floating
-        ignoresMouseEvents = true
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-        hasShadow = false
-        animationBehavior = .none
+        isOpaque             = false
+        backgroundColor      = .clear
+        level                = .screenSaver         // above all normal windows
+        ignoresMouseEvents   = true
+        collectionBehavior   = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        hasShadow            = false
+        hidesOnDeactivate    = false
+        animationBehavior    = .none
+        isFloatingPanel      = true
+        isReleasedWhenClosed = false
 
-        let contentView = NSView(frame: .zero)
-        contentView.wantsLayer = true
-        self.contentView = contentView
+        let cv = NSView(frame: .zero)
+        cv.wantsLayer = true
+        contentView = cv
 
-        label.isBezeled = false
-        label.isEditable = false
-        label.isSelectable = false
-        label.backgroundColor = .clear
-        label.drawsBackground = false
-        label.lineBreakMode = .byTruncatingTail
+        label.isBezeled            = false
+        label.isEditable           = false
+        label.isSelectable         = false
+        label.backgroundColor      = .clear
+        label.drawsBackground      = false
+        label.lineBreakMode        = .byTruncatingTail
         label.maximumNumberOfLines = 1
-        contentView.addSubview(label)
+        cv.addSubview(label)
     }
 
     // MARK: - Public API
 
-    /// Show suggestion at cursor. axRect is in Quartz screen coordinates (y from top-left, y↓).
+    /// Show ghost text. `axRect` is in Quartz / Core Graphics coordinates (y=0 top, y↓).
     func show(suggestion: String, at axRect: CGRect, font: NSFont, color: NSColor) {
-        dismissTimer?.invalidate()
-        dismissTimer = nil
+        guard !suggestion.isEmpty else { dismiss(); return }
         currentSuggestion = suggestion
 
+        // Scale font to match visual line height from the caret rect.
+        // Many apps report wrong font size via AX; caret height is more reliable.
+        let displayFont = fontMatchingCaretHeight(axRect.height, preferred: font)
+
         label.stringValue = suggestion
-        label.font = font
-        label.textColor = color.withAlphaComponent(0.45)
+        label.font        = displayFont
+        label.textColor   = color.withAlphaComponent(0.42)
 
-        let attrs: [NSAttributedString.Key: Any] = [.font: font]
-        let textSize = (suggestion as NSString).size(withAttributes: attrs)
+        let attrs = [NSAttributedString.Key.font: displayFont]
+        let textW = min((suggestion as NSString).size(withAttributes: attrs).width + 2, 720)
 
-        // Derive line height from font metrics — don't trust axRect.height which can be 0
-        // for some apps (Chrome, Electron, etc.)
-        let fontLineH = ceil(font.ascender - font.descender + font.leading)
-        let lineH = axRect.height > 2 ? axRect.height : fontLineH
+        // Line height from font metrics when caret rect has no height (some apps return 0)
+        let lineH = axRect.height > 2
+            ? axRect.height
+            : ceil(displayFont.ascender - displayFont.descender + displayFont.leading)
 
-        let windowW = min(textSize.width + 2, 720)
-        let windowH = ceil(lineH)
-
-        // AX returns Quartz coords (y=0 at TOP of primary screen, increasing downward).
-        // NSWindow.setFrame wants Cocoa coords (y=0 at BOTTOM of primary screen, increasing upward).
-        // Cocoa-Y of cursor bottom = primaryH − (axQuartzY + lineH)
+        // Convert AX Quartz Y → Cocoa Y: cocoaBottom = primaryH − (axY + lineH)
         let primaryH = NSScreen.screens.first?.frame.height ?? NSScreen.main?.frame.height ?? 0
-        let cocoaY = primaryH - axRect.origin.y - lineH
+        let cocoaY   = primaryH - axRect.origin.y - lineH
 
-        setFrame(CGRect(x: axRect.maxX + 1, y: cocoaY, width: windowW, height: windowH),
+        // axRect.origin.x is already the cursor X (right edge of last char, from strategy 1)
+        setFrame(CGRect(x: axRect.origin.x, y: cocoaY, width: textW, height: ceil(lineH)),
                  display: false)
-        label.frame = CGRect(x: 0, y: 0, width: windowW, height: windowH)
+        label.frame = CGRect(x: 0, y: 0, width: textW, height: ceil(lineH))
 
         if !isVisible {
             alphaValue = 0
             orderFront(nil)
             NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.06
+                ctx.duration = 0.05
                 ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 self.animator().alphaValue = 1
             }
@@ -93,10 +100,9 @@ class SuggestionOverlay: NSWindow {
         guard isVisible else { return }
         currentSuggestion = suggestion
         label.stringValue = suggestion
-
         if let font = label.font {
-            let attrs: [NSAttributedString.Key: Any] = [.font: font]
-            let newW = min((suggestion as NSString).size(withAttributes: attrs).width + 2, 720)
+            let attrs = [NSAttributedString.Key.font: font]
+            let newW  = min((suggestion as NSString).size(withAttributes: attrs).width + 2, 720)
             if abs(newW - frame.width) > 4 {
                 var r = frame; r.size.width = newW
                 setFrame(r, display: false)
@@ -106,12 +112,20 @@ class SuggestionOverlay: NSWindow {
         display()
     }
 
+    /// Shift overlay right after a word is accepted so it tracks the new cursor position.
+    func advanceCursorX(by width: CGFloat) {
+        guard isVisible else { return }
+        var r = frame
+        r.origin.x += width
+        r.size.width = max(r.size.width - width, 1)
+        setFrame(r, display: false)
+        label.frame.size.width = r.size.width
+        display()
+    }
+
     func dismiss(animated: Bool = false) {
-        dismissTimer?.invalidate()
-        dismissTimer = nil
         currentSuggestion = nil
         guard isVisible else { return }
-
         if animated {
             NSAnimationContext.runAnimationGroup({ ctx in
                 ctx.duration = 0.06
@@ -126,5 +140,16 @@ class SuggestionOverlay: NSWindow {
             orderOut(nil)
             alphaValue = 1
         }
+    }
+
+    // MARK: - Private
+
+    private func fontMatchingCaretHeight(_ caretH: CGFloat, preferred font: NSFont) -> NSFont {
+        guard caretH > 4 else { return font }
+        let metricsH = font.ascender - font.descender
+        guard metricsH > 0 else { return font }
+        let scaled  = caretH * font.pointSize / metricsH
+        let clamped = max(8, min(scaled, 48))
+        return NSFont(name: font.fontName, size: clamped) ?? NSFont.systemFont(ofSize: clamped)
     }
 }
