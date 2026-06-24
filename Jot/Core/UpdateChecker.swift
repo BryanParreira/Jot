@@ -7,7 +7,7 @@ actor UpdateChecker {
     static let shared = UpdateChecker()
 
     // ── Change these two values to match your GitHub repo ──
-    static let githubRepo = "bryanparreira/jot"   // owner/repo
+    static let githubRepo = "BryanParreira/Jot"
     static let releasesPage = "https://github.com/\(githubRepo)/releases/latest"
     // ────────────────────────────────────────────────────────
 
