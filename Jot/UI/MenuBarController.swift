@@ -114,6 +114,15 @@ class MenuBarController {
         buildMenu()
     }
 
+    func showInputMonitoringWarning() {
+        needsAccessibility = true  // re-use banner for both permission types
+        if let button = statusItem?.button {
+            applyStatusBarIcon(to: button)
+            button.toolTip = "Jot: Input Monitoring access needed — click to fix"
+        }
+        buildMenu()
+    }
+
     func clearPermissionWarning() {
         needsAccessibility = false
         if let button = statusItem?.button {

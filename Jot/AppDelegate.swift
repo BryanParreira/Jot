@@ -49,12 +49,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     @MainActor
     func checkAccessibilityPermission() {
         if AXIsProcessTrusted() {
-            initializeCore()
+            checkInputMonitoringPermission()
         } else {
             menuBarController?.showPermissionWarning()
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
             AXIsProcessTrustedWithOptions(options as CFDictionary)
             startPermissionPolling()
+        }
+    }
+
+    @MainActor
+    private func checkInputMonitoringPermission() {
+        if CGPreflightListenEventAccess() {
+            initializeCore()
+        } else {
+            menuBarController?.showInputMonitoringWarning()
+            CGRequestListenEventAccess()
+            startInputMonitoringPolling()
+        }
+    }
+
+    @MainActor
+    private func startInputMonitoringPolling() {
+        permissionPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard CGPreflightListenEventAccess() else { return }
+            DispatchQueue.main.async {
+                self?.permissionPollTimer?.invalidate()
+                self?.relaunch()
+            }
         }
     }
 

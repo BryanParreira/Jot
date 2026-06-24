@@ -127,12 +127,11 @@ class CompletionEngine: ObservableObject {
             bundleID: accessibilityManager.focusedAppBundleID()
         )
 
-        // Cotypist uses 2–4 word target for Medium — fewer tokens = faster first token = snappier UX
         let numPredict: Int
         switch settings.completionLength {
-        case "short": numPredict = 6   // ~1–2 words
-        case "long":  numPredict = 20  // ~6–8 words
-        default:      numPredict = 10  // ~2–4 words (Cotypist Medium)
+        case "short": numPredict = 5   // ~1–2 words
+        case "long":  numPredict = 16  // ~4–6 words
+        default:      numPredict = 8   // ~2–3 words (default)
         }
 
         let options = OllamaOptions(
@@ -159,31 +158,24 @@ class CompletionEngine: ObservableObject {
                     options: options
                 )
 
+                // Collect full stream before showing — eliminates mid-stream flicker / word glitches
+                var accumulated = ""
                 for try await partial in stream {
-                    guard !Task.isCancelled else { return }
-
-                    let cleaned = self.postProcess(partial, textBefore: textBefore)
-                    guard !cleaned.isEmpty else { continue }
-
-                    if self.state == .requesting {
-                        // First useful token — show overlay
-                        let rect = self.accessibilityManager.cursorScreenRect(in: capturedElement)
-                            ?? self.lastCursorRect
-                        self.showSuggestion(cleaned, kind: .llm, cursorRect: rect, element: capturedElement)
-                        StatsTracker.shared.recordLatency(Int(Date().timeIntervalSince(startTime) * 1000))
-                    } else if self.state == .suggestionShown {
-                        // Stream update — grow the suggestion in-place
-                        self.currentSuggestion = cleaned
-                        self.overlay.update(suggestion: cleaned)
-                    } else {
-                        return
-                    }
+                    guard !Task.isCancelled, self.state == .requesting else { return }
+                    accumulated = partial  // partial is always the full accumulated text
                 }
 
-                // Stream finished — record final suggestion for stats
-                if let final = self.currentSuggestion, self.state == .suggestionShown {
-                    DebugLogger.log("← complete: \(final.prefix(80))")
-                }
+                guard !Task.isCancelled, self.state == .requesting else { return }
+                guard !accumulated.isEmpty else { self.state = .idle; return }
+
+                let cleaned = self.postProcess(accumulated, textBefore: textBefore, textAfter: textAfter)
+                guard !cleaned.isEmpty else { self.state = .idle; return }
+
+                let rect = self.accessibilityManager.cursorScreenRect(in: capturedElement)
+                    ?? self.lastCursorRect
+                self.showSuggestion(cleaned, kind: .llm, cursorRect: rect, element: capturedElement)
+                StatsTracker.shared.recordLatency(Int(Date().timeIntervalSince(startTime) * 1000))
+                DebugLogger.log("← complete: \(cleaned.prefix(80))")
 
             } catch OllamaError.modelNotFound(let model) {
                 self.notifyModelNotFound(model)
@@ -232,37 +224,54 @@ class CompletionEngine: ObservableObject {
         case .llm: break
         }
 
-        // Split at first space boundary
-        let trimmed = suggestion.hasPrefix(" ") ? String(suggestion.dropFirst()) : suggestion
-        let words   = trimmed.components(separatedBy: " ")
-        guard let first = words.first, !first.isEmpty else { acceptFull(); return }
+        // Suggestion never has a leading space (postProcess strips it).
+        // Split at first space to get the next word.
+        let words = suggestion.components(separatedBy: " ").filter { !$0.isEmpty }
+        guard let first = words.first else { acceptFull(); return }
 
-        // Preserve leading space if present (e.g. " world" after "Hello")
-        let leadingSpace = suggestion.hasPrefix(" ") ? " " : ""
-        let toInsert = leadingSpace + first + " "
+        // Always append a trailing space — completes mid-word fragments too:
+        // "h" + "elp " = "help " (cursor lands at word boundary, ready for next word).
+        let toInsert = first + " "
 
         accessibilityManager.insertText(toInsert, into: element)
         PersonalizationStore.shared.recordAccepted(toInsert)
         StatsTracker.shared.recordAccepted(text: toInsert)
 
-        // Build remaining suggestion
-        var rest = suggestion
-        if let r = rest.range(of: toInsert) { rest.removeSubrange(r) }
-        else if let r = rest.range(of: first) { rest.removeSubrange(r) }
-        rest = rest.trimmingCharacters(in: .init(charactersIn: " "))
+        // Build remaining suggestion — drop the accepted word and its trailing space.
+        let rest = words.dropFirst().joined(separator: " ")
 
         if rest.isEmpty {
             clearSuggestion()
             return
         }
 
-        // Single atomic render: shift overlay right + update remaining text (no flicker)
+        currentSuggestion = rest
+
+        // Re-query actual cursor position after insertion — more reliable than
+        // estimating pixel width, which diverges when font metrics differ from
+        // the target app's rendering (ligatures, kerning, sub-pixel spacing).
         let font = accessibilityManager.fontForElement(element)
             ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-        let attrs = [NSAttributedString.Key.font: font]
-        let acceptedWidth = (toInsert as NSString).size(withAttributes: attrs).width
-        currentSuggestion = rest
-        overlay.advanceAfterAccepting(remaining: rest, acceptedWidth: acceptedWidth)
+        let newRect = accessibilityManager.cursorScreenRect(in: element)
+        if let rect = newRect ?? lastCursorRect {
+            overlay.show(suggestion: rest, at: rect, font: font, color: .placeholderTextColor)
+        }
+
+        // Pasteboard-based apps (Chrome, Electron) update AX cursor asynchronously
+        // after CMD+V fires. Re-query once the paste has settled.
+        let capturedElement = element
+        let capturedRest    = rest
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { [weak self] in
+            guard let self,
+                  self.hasSuggestion,
+                  self.currentSuggestion == capturedRest,
+                  let rect = self.accessibilityManager.cursorScreenRect(in: capturedElement)
+            else { return }
+            let f = self.accessibilityManager.fontForElement(capturedElement)
+                ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            self.overlay.show(suggestion: capturedRest, at: rect, font: f,
+                              color: .placeholderTextColor)
+        }
     }
 
     func dismiss() {
@@ -295,20 +304,23 @@ class CompletionEngine: ObservableObject {
         }
     }
 
-    private func postProcess(_ raw: String, textBefore: String) -> String {
+    private func postProcess(_ raw: String, textBefore: String, textAfter: String?) -> String {
         var result = raw
 
-        // Strip surrounding newlines
-        while result.hasSuffix("\n") || result.hasSuffix("\r") { result = String(result.dropLast()) }
-        while result.hasPrefix("\n") || result.hasPrefix("\r") { result = String(result.dropFirst()) }
+        // Collapse to first line only — never show multi-line ghost text
+        if let nl = result.firstIndex(of: "\n") {
+            result = String(result[..<nl])
+        }
+        result = result.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Strip wrapping quotes
+        // Strip wrapping quotes the model sometimes adds
         if result.hasPrefix("\"") && result.hasSuffix("\"") && result.count > 2 {
             result = String(result.dropFirst().dropLast())
         }
 
-        // Mid-word dedup: model echoed the fragment already typed.
-        // e.g. user typed "amaz", model emits "amazing" → show only "ing"
+        // ── Echo stripping ────────────────────────────────────────────────────
+        // 1. Mid-word case: cursor inside a word. Strip any leading chars that
+        //    re-emit the partial word the user already typed ("amaz" → "ing").
         let endsWithSpace = textBefore.last.map(\.isWhitespace) ?? false
         if !endsWithSpace {
             let fragment = textBefore
@@ -319,8 +331,72 @@ class CompletionEngine: ObservableObject {
             }
         }
 
-        // Reject empty result only
+        // 2. Word-by-word suffix-prefix echo: strip words at the start of the
+        //    completion that repeat the tail of preceding text.
+        //    e.g. preceding="hello world", completion="world is great" → "is great"
+        result = stripWordEchoPrefix(result, precedingText: textBefore)
+
+        // 3. Space normalization after echo stripping:
+        //    - Mid-word (cursor inside a word): strip any leading space the model added.
+        //      "h" + " elp" must become "h" + "elp" → "help", not "h elp".
+        //    - Word boundary (cursor after space): strip leading space to prevent double-space.
+        //      "Hello " + " world" must become "Hello " + "world".
+        //    Both cases → always strip leading spaces here.
+        result = String(result.drop(while: { $0 == " " || $0 == "\t" }))
+
+        // 4. Trailing duplication guard: if suggestion duplicates text already
+        //    after the cursor, suppress it entirely (mid-text fill-in case).
+        if let after = textAfter, !after.isEmpty {
+            let foldedResult  = alphanumericFold(result)
+            let foldedAfter   = alphanumericFold(String(after.prefix(80)))
+            if foldedResult.count >= 4 &&
+               (foldedAfter.hasPrefix(foldedResult) || foldedResult.hasPrefix(foldedAfter)) {
+                return ""
+            }
+        }
+
+        // ── Hard word-count cap ───────────────────────────────────────────────
+        let maxWords: Int
+        switch AppSettings.shared.completionLength {
+        case "short": maxWords = 2
+        case "long":  maxWords = 6
+        default:      maxWords = 3  // 2-3 words for medium
+        }
+        let tokens = result.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        if tokens.count > maxWords {
+            result = tokens.prefix(maxWords).joined(separator: " ")
+        }
+
         return result.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : result
+    }
+
+    /// Strip any leading words in `suggestion` that repeat the tail of `precedingText`.
+    private func stripWordEchoPrefix(_ suggestion: String, precedingText: String) -> String {
+        let sWords = suggestion.split(whereSeparator: { $0.isWhitespace })
+        guard !sWords.isEmpty else { return suggestion }
+        let pWords = precedingText.split(whereSeparator: { $0.isWhitespace })
+        guard !pWords.isEmpty else { return suggestion }
+
+        let maxCheck = min(pWords.count, 8)
+        var bestOverlap = 0
+        for depth in 1...maxCheck {
+            let tail = pWords.suffix(depth)
+            let head = sWords.prefix(depth)
+            guard tail.count == head.count else { continue }
+            if zip(tail, head).allSatisfy({ $0.0.caseInsensitiveCompare(String($0.1)) == .orderedSame }) {
+                bestOverlap = depth
+            }
+        }
+        guard bestOverlap > 0 else { return suggestion }
+        if bestOverlap >= sWords.count { return "" }
+        // Use startIndex of the first non-echoed word so we keep it, not skip it.
+        // .endIndex pointed past that word — was silently dropping one extra word.
+        let from = sWords[bestOverlap].startIndex
+        return String(suggestion[from...])
+    }
+
+    private func alphanumericFold(_ text: String) -> String {
+        String(text.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
     }
 
     private func cancelAll() {

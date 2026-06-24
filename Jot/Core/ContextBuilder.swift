@@ -10,12 +10,11 @@ struct ContextBuilder {
         clipboard: String?,
         bundleID: String?
     ) -> (systemPrompt: String, userMessage: String) {
-        // Mirror Cotypist's word targets: short=1-2, medium=2-4, long=6-8
         let (wordMin, wordMax): (Int, Int)
         switch settings.completionLength {
         case "short": (wordMin, wordMax) = (1, 2)
-        case "long":  (wordMin, wordMax) = (6, 8)
-        default:      (wordMin, wordMax) = (2, 4)
+        case "long":  (wordMin, wordMax) = (4, 6)
+        default:      (wordMin, wordMax) = (2, 3)
         }
 
         // Detect mid-word (text ends without whitespace)
