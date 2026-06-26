@@ -14,6 +14,7 @@ enum SettingsKeys {
     static let enableEmoji = "enableEmoji"
     static let enableTypoDetection = "enableTypoDetection"
     static let enableMidLine = "enableMidLine"
+    static let inferenceEngine = "inferenceEngine"
     static let debugMode = "debugMode"
     static let blockedBundleIDs = "blockedBundleIDs"
     static let enableMacros = "enableMacros"

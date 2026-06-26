@@ -40,7 +40,8 @@ class OnboardingViewController: NSViewController {
         case 0: showWelcomeStep()
         case 1: showAccessibilityStep()
         case 2: showInputMonitoringStep()
-        case 3: showOllamaStep()
+        case 3: showScreenRecordingStep()
+        case 4: showOllamaStep()
         default: finish()
         }
     }
@@ -139,6 +140,59 @@ class OnboardingViewController: NSViewController {
             guard CGPreflightListenEventAccess() else { return }
             timer.invalidate()
             DispatchQueue.main.async { self?.showStep(3) }
+        }
+    }
+
+    private func showScreenRecordingStep() {
+        let stack = centeredStack()
+
+        let icon = permissionIcon("camera.fill", color: .systemTeal)
+        let title = heading("Screen Recording")
+        let body = paragraph("Reads a screenshot around the focused field to give Jot visual context — making suggestions smarter in web apps, editors, and anything where labels live outside the text field.\n\nThis is optional. Disable in Settings → Context if you'd rather skip it.")
+
+        let statusLabel = statusBadge("Optional — enhances suggestions with on-screen context")
+
+        let btn = primaryButton("Grant Screen Recording Access")
+        btn.onAction { [weak self] _ in
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                NSWorkspace.shared.open(url)
+            }
+            CGRequestScreenCaptureAccess()
+            self?.waitForScreenRecording(label: statusLabel)
+        }
+
+        let skipBtn = secondaryButton("Skip — don't use visual context")
+        skipBtn.onAction { [weak self] _ in
+            AppSettings.shared.screenAwareMode = false
+            self?.showStep(4)
+        }
+
+        let alreadyBtn = secondaryButton("Already granted — continue")
+        alreadyBtn.onAction { [weak self] _ in self?.showStep(4) }
+
+        stack.addArrangedSubview(icon)
+        stack.addArrangedSubview(title)
+        stack.addArrangedSubview(body)
+        stack.addArrangedSubview(statusLabel)
+        stack.addArrangedSubview(spacer(4))
+        stack.addArrangedSubview(btn)
+        stack.addArrangedSubview(alreadyBtn)
+        stack.addArrangedSubview(skipBtn)
+    }
+
+    private func waitForScreenRecording(label: NSTextField) {
+        label.stringValue = "Waiting for permission…"
+        label.textColor = .systemOrange
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.75, repeats: true) { [weak self] timer in
+            guard CGPreflightScreenCaptureAccess() else { return }
+            timer.invalidate()
+            DispatchQueue.main.async {
+                label.stringValue = "✓ Screen Recording granted"
+                label.textColor = .systemGreen
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    self?.showStep(4)
+                }
+            }
         }
     }
 

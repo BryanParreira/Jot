@@ -123,6 +123,13 @@ class MenuBarController {
         buildMenu()
     }
 
+    func showScreenRecordingWarning() {
+        // Non-blocking: app runs fine without it; just note the setting won't work
+        if let button = statusItem?.button {
+            button.toolTip = "Jot: Screen Recording access needed for visual context (optional)"
+        }
+    }
+
     func clearPermissionWarning() {
         needsAccessibility = false
         if let button = statusItem?.button {

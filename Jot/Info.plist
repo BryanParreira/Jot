@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSAccessibilityUsageDescription</key>
 	<string>Jot needs Accessibility access to read text from apps and show inline suggestions.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>Jot can capture a small screenshot around your cursor to read visual context near the text field, making suggestions more relevant to what's on screen.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2024 Jot. All rights reserved.</string>
 	<key>NSPrincipalClass</key>

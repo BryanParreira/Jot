@@ -42,7 +42,7 @@ class AppSettings: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
-    @UserDefault(SettingsKeys.debounceMs, defaultValue: 200)
+    @UserDefault(SettingsKeys.debounceMs, defaultValue: 150)
     var debounceMs: Int {
         willSet { objectWillChange.send() }
     }
@@ -109,6 +109,11 @@ class AppSettings: ObservableObject {
 
     @UserDefault(SettingsKeys.overlayOpacity, defaultValue: 0.42)
     var overlayOpacity: Double {
+        willSet { objectWillChange.send() }
+    }
+
+    @UserDefault(SettingsKeys.inferenceEngine, defaultValue: "auto")
+    var inferenceEngine: String {
         willSet { objectWillChange.send() }
     }
 

@@ -1,4 +1,5 @@
 import Cocoa
+import FoundationModels
 
 // MARK: - Data
 
@@ -509,7 +510,11 @@ private class ModelPage: SettingsPage {
         super.viewDidLoad()
         pageTitle("Model")
 
-        sectionLabel("Active Model")
+        sectionLabel("Inference Engine")
+        buildEngineCard()
+
+        addSpacer(10)
+        sectionLabel("Ollama Model")
         buildModelCard()
 
         addSpacer(10)
@@ -517,6 +522,50 @@ private class ModelPage: SettingsPage {
         buildRecommendedSection()
 
         fetchModels()
+    }
+
+    private func buildEngineCard() {
+        let isFoundation: Bool
+        if #available(macOS 26.0, *) {
+            isFoundation = AppSettings.shared.inferenceEngine != "ollama"
+                && SystemLanguageModel.default.isAvailable
+        } else {
+            isFoundation = false
+        }
+
+        let engineName = isFoundation ? "Apple Foundation Models" : "Ollama"
+        let engineDetail = isFoundation
+            ? "On-device • Neural Engine • macOS 26+"
+            : "Local HTTP • ollama.com required"
+
+        let row = SettingsRow(height: 52)
+        row.addLabel(engineName, subtitle: engineDetail)
+
+        let pu = NSPopUpButton()
+        pu.addItems(withTitles: ["Auto", "Foundation Models", "Ollama"])
+        pu.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        switch AppSettings.shared.inferenceEngine {
+        case "foundationModels": pu.selectItem(at: 1)
+        case "ollama":           pu.selectItem(at: 2)
+        default:                 pu.selectItem(at: 0)
+        }
+        pu.onAction { ctrl in
+            switch (ctrl as! NSPopUpButton).indexOfSelectedItem {
+            case 1:  AppSettings.shared.inferenceEngine = "foundationModels"
+            case 2:  AppSettings.shared.inferenceEngine = "ollama"
+            default: AppSettings.shared.inferenceEngine = "auto"
+            }
+        }
+        row.addControl(pu)
+
+        let noteRow = SettingsRow()
+        noteRow.addLabel("Note", subtitle: nil)
+        let noteLbl = NSTextField(labelWithString: "Restart Jot after changing engine")
+        noteLbl.font = NSFont.systemFont(ofSize: 11)
+        noteLbl.textColor = .secondaryLabelColor
+        noteRow.addControl(noteLbl)
+
+        card([row, noteRow])
     }
 
     private func buildModelCard() {

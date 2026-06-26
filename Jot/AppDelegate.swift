@@ -61,12 +61,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     @MainActor
     private func checkInputMonitoringPermission() {
         if CGPreflightListenEventAccess() {
-            initializeCore()
+            checkScreenRecordingPermission()
         } else {
             menuBarController?.showInputMonitoringWarning()
             CGRequestListenEventAccess()
             startInputMonitoringPolling()
         }
+    }
+
+    @MainActor
+    private func checkScreenRecordingPermission() {
+        if AppSettings.shared.screenAwareMode && !CGPreflightScreenCaptureAccess() {
+            menuBarController?.showScreenRecordingWarning()
+            CGRequestScreenCaptureAccess()
+        }
+        initializeCore()
     }
 
     @MainActor

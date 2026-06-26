@@ -8,25 +8,28 @@ struct ContextBuilder {
         settings: AppSettings,
         personalization: PersonalizationStore,
         clipboard: String?,
-        bundleID: String?
+        bundleID: String?,
+        visualContext: String? = nil
     ) -> (systemPrompt: String, userMessage: String) {
         let (wordMin, wordMax): (Int, Int)
         switch settings.completionLength {
-        case "short": (wordMin, wordMax) = (1, 2)
-        case "long":  (wordMin, wordMax) = (4, 6)
-        default:      (wordMin, wordMax) = (2, 3)
+        case "short": (wordMin, wordMax) = (2, 3)
+        case "long":  (wordMin, wordMax) = (5, 8)
+        default:      (wordMin, wordMax) = (3, 5)
         }
 
         // Detect mid-word (text ends without whitespace)
         let endsWithSpace = textBefore.last.map(\.isWhitespace) ?? false
-        let midWordNote = endsWithSpace ? "" : " If input ends mid-word, complete that word first."
+        // Tell the model to finish the partial word AND keep going — not stop at word boundary
+        let midWordNote = endsWithSpace ? "" :
+            " Input ends mid-word — finish that word then continue with the next words."
 
         var parts: [String] = []
         parts.append("""
-        You are an inline text completion engine. \
-        Output ONLY the continuation — \(wordMin)–\(wordMax) words maximum.\(midWordNote) \
-        Never repeat text from input. Never add preamble or quotes. \
-        Match tone, style, and language exactly. Stop at a natural phrase boundary.
+        You are a phrase-completion engine embedded in macOS. \
+        Output the next \(wordMin)–\(wordMax) words that would naturally follow the given text. \
+        Raw words only — no quotes, no preamble, no explanation, no punctuation unless it fits naturally.\(midWordNote) \
+        Never echo text already present. Match the writer's tone, language, and style exactly.
         """)
 
         if !settings.customInstructions.isEmpty {
@@ -57,6 +60,10 @@ struct ContextBuilder {
            let clip = clipboard,
            clip.count >= 5, clip.count <= 300 {
             parts.append("Clipboard: \"\(clip)\"")
+        }
+
+        if let visual = visualContext, !visual.isEmpty {
+            parts.append("Screen context (visible text near caret): \(visual.prefix(300))")
         }
 
         let systemPrompt = parts.joined(separator: "\n\n")
