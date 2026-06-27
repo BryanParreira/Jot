@@ -161,14 +161,14 @@ struct FileLogHandler: LogHandler {
     private let label: String
     private let writer: FileLogWriter
 
-    /// `logLevel` defaults to `JotDebugOptions.minimumLogLevel`. This sink is only installed
+    /// `logLevel` defaults to `ScribeDebugOptions.minimumLogLevel`. This sink is only installed
     /// under `-cotabby-debug`, where the floor is `.trace`, so it captures everything by default —
     /// but sourcing the level from the same place keeps it honest if the floor is overridden via
     /// `COTABBY_LOG_LEVEL`.
     init(
         label: String,
         writer: FileLogWriter = .shared,
-        logLevel: Logging.Logger.Level = JotDebugOptions.minimumLogLevel
+        logLevel: Logging.Logger.Level = ScribeDebugOptions.minimumLogLevel
     ) {
         self.label = label
         self.writer = writer

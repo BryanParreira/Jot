@@ -395,7 +395,7 @@ final class FocusTracker {
     /// Emits one `[Focus] CHROME-FOCUS-PROBE` line per focus-resolution change (deduplicated by
     /// app + source) so the diagnostic shows which query resolved focus without spamming the log.
     private func logChromeFocusProbe(source: String, application: NSRunningApplication) {
-        guard JotDebugOptions.isEnabled else { return }
+        guard ScribeDebugOptions.isEnabled else { return }
         let signature = "\(application.processIdentifier):\(source)"
         guard signature != lastChromeProbeSignature else { return }
         lastChromeProbeSignature = signature
@@ -412,7 +412,7 @@ final class FocusTracker {
         application: NSRunningApplication,
         snapshot: FocusSnapshot
     ) {
-        guard JotDebugOptions.isEnabled else {
+        guard ScribeDebugOptions.isEnabled else {
             return
         }
         let millis = Double((ContinuousClock.now - start).components.attoseconds) / 1e15

@@ -126,7 +126,7 @@ final class ScreenshotContextGenerator {
         )
         let normalizedText = normalizeRecognizedText(cleanedOCR)
 
-        if JotDebugOptions.isEnabled {
+        if ScribeDebugOptions.isEnabled {
             saveDebugScreenshot(
                 image,
                 text: extracted.text,

@@ -6,11 +6,11 @@ import os
 /// Centralizes Jot's developer-only runtime switches.
 ///
 /// A single launch argument is easier to reason about than separate feature flags because every
-/// privacy-sensitive diagnostic path has one obvious gate. Passing `-cotabby-debug` means the
+/// privacy-sensitive diagnostic path has one obvious gate. Passing `-scribe-debug` means the
 /// developer intentionally opted into local debugging artifacts such as overlays, detailed service
 /// logs, and screenshot/OCR captures.
-nonisolated enum JotDebugOptions {
-    static let launchArgument = "-cotabby-debug"
+nonisolated enum ScribeDebugOptions {
+    static let launchArgument = "-scribe-debug"
 
     static var isEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
@@ -28,13 +28,13 @@ nonisolated enum JotDebugOptions {
     /// explicitly requested.
     ///
     /// Precedence, highest first:
-    /// 1. `COTABBY_LOG_LEVEL=<trace|debug|info|notice|warning|error|critical>` — explicit override,
-    ///    e.g. to get Console `.debug` output without the heavier `-cotabby-debug` file/screenshot
+    /// 1. `SCRIBE_LOG_LEVEL=<trace|debug|info|notice|warning|error|critical>` — explicit override,
+    ///    e.g. to get Console `.debug` output without the heavier `-scribe-debug` file/screenshot
     ///    artifacts. An unrecognized value is ignored.
-    /// 2. `-cotabby-debug` — full `.trace` capture to Console and the JSONL sinks.
+    /// 2. `-scribe-debug` — full `.trace` capture to Console and the JSONL sinks.
     /// 3. Default — `.info`.
     static var minimumLogLevel: Logging.Logger.Level {
-        if let raw = ProcessInfo.processInfo.environment["COTABBY_LOG_LEVEL"]?.lowercased(),
+        if let raw = ProcessInfo.processInfo.environment["SCRIBE_LOG_LEVEL"]?.lowercased(),
            let level = Logging.Logger.Level(rawValue: raw) {
             return level
         }
@@ -58,20 +58,20 @@ nonisolated enum JotDebugOptions {
 /// Provides subsystem-scoped loggers for the entire app.
 ///
 /// All loggers route through `OSLogHandler` so messages appear in Console.app with the
-/// subsystem as a filterable column. When the `-cotabby-debug` launch argument is set we
+/// subsystem as a filterable column. When the `-scribe-debug` launch argument is set we
 /// additionally fan out to `FileLogHandler`, which writes JSONL to
-/// `~/Library/Logs/Scribe/cotabby.jsonl` for AI-assisted debugging without copy-paste.
+/// `~/Library/Logs/Scribe/scribe.jsonl` for AI-assisted debugging without copy-paste.
 nonisolated enum JotLogger {
     /// Reserved label that routes only to the dedicated LLM I/O sink, never to OSLog or the main
     /// JSONL file. Kept out of OSLog because full prompts/completions can be many KB per request
-    /// and would dominate Console.app; kept out of `cotabby.jsonl` because it would drown the
+    /// and would dominate Console.app; kept out of `scribe.jsonl` because it would drown the
     /// orchestration signal an AI debugger wants to skim.
     static let llmIOLabel = "com.bryanbernardo.scribe.llm-io"
 
     private static let bootstrapOnce: Void = {
         // The debug-flag check happens once, at bootstrap time. Toggling it requires a relaunch,
         // which matches how every other launch-arg in the app behaves.
-        let installFileHandler = JotDebugOptions.isEnabled
+        let installFileHandler = ScribeDebugOptions.isEnabled
         LoggingSystem.bootstrap { label in
             if label == llmIOLabel {
                 // LLM I/O records are debug-only by design — installing the handler unconditionally
@@ -98,8 +98,8 @@ nonisolated enum JotLogger {
     /// misconfigured verbosity obvious instead of looking like "nothing is being logged".
     private static func announceConfiguration(fileSinksInstalled: Bool) {
         var metadata: Logging.Logger.Metadata = [
-            "debug_mode": .stringConvertible(JotDebugOptions.isEnabled),
-            "min_log_level": .string(JotDebugOptions.minimumLogLevel.rawValue),
+            "debug_mode": .stringConvertible(ScribeDebugOptions.isEnabled),
+            "min_log_level": .string(ScribeDebugOptions.minimumLogLevel.rawValue),
             "file_sinks": .stringConvertible(fileSinksInstalled)
         ]
         // Only touch the file writers when sinks are actually installed: referencing `.shared` opens
@@ -123,7 +123,7 @@ nonisolated enum JotLogger {
     static let models = Logger(label: "com.bryanbernardo.scribe.models")
     static let suggestion = Logger(label: "com.bryanbernardo.scribe.suggestion")
     /// Full prompts and completions, one structured JSON record per generation. Writes to
-    /// `~/Library/Logs/Scribe/llm-io.jsonl` only when `-cotabby-debug` is set.
+    /// `~/Library/Logs/Scribe/llm-io.jsonl` only when `-scribe-debug` is set.
     static let llmIO = Logger(label: llmIOLabel)
 }
 
@@ -140,10 +140,10 @@ struct OSLogHandler: LogHandler {
     /// with one subsystem while still distinguishing components by category.
     private static let subsystem = "com.bryanbernardo.scribe.app"
 
-    /// `logLevel` defaults to `JotDebugOptions.minimumLogLevel` so the always-on Console sink is
-    /// quiet (`.info`) in normal runs and fully verbose (`.trace`) under `-cotabby-debug`. The floor
+    /// `logLevel` defaults to `ScribeDebugOptions.minimumLogLevel` so the always-on Console sink is
+    /// quiet (`.info`) in normal runs and fully verbose (`.trace`) under `-scribe-debug`. The floor
     /// is what lets swift-log skip per-keystroke `.debug`/`.trace` calls before they allocate.
-    init(label: String, logLevel: Logging.Logger.Level = JotDebugOptions.minimumLogLevel) {
+    init(label: String, logLevel: Logging.Logger.Level = ScribeDebugOptions.minimumLogLevel) {
         self.logLevel = logLevel
         let parts = label.split(separator: ".", maxSplits: 2)
         let category = parts.count > 2 ? String(parts[2]) : label

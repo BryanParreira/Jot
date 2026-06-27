@@ -11,10 +11,10 @@ import SwiftUI
 /// headless and testable.
 @MainActor
 final class FocusDebugOverlayController {
-    static let launchArgument = JotDebugOptions.launchArgument
+    static let launchArgument = ScribeDebugOptions.launchArgument
 
     static var isEnabled: Bool {
-        JotDebugOptions.isEnabled
+        ScribeDebugOptions.isEnabled
     }
 
     private lazy var caretPanel: NSPanel = makePanel()

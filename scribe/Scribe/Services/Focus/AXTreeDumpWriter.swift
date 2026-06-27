@@ -36,7 +36,7 @@ enum AXTreeDumpWriter {
         bundleIdentifier: String,
         focusedElementIdentifier: String
     ) {
-        guard JotDebugOptions.isEnabled,
+        guard ScribeDebugOptions.isEnabled,
               bundleIdentifier == dumpAXBundleIdentifier,
               lastDumpedElementID != focusedElementIdentifier else {
             return

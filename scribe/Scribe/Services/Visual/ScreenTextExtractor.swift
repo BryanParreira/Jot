@@ -232,7 +232,7 @@ struct ScreenTextExtractor: ScreenTextExtracting {
     private func log(_ message: String) {
         // OCR log messages include preview text from the user's screen. Route them through
         // the debug gate so they only appear when the developer explicitly opts in.
-        JotDebugOptions.log(message)
+        ScribeDebugOptions.log(message)
     }
 
     private func preview(_ text: String) -> String {

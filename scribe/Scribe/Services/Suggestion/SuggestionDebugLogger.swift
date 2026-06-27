@@ -72,7 +72,7 @@ final class SuggestionDebugLogger {
         rawOutput: String? = nil,
         normalizedOutput: String? = nil
     ) {
-        guard JotDebugOptions.isEnabled else {
+        guard ScribeDebugOptions.isEnabled else {
             return
         }
 
@@ -135,7 +135,7 @@ final class SuggestionDebugLogger {
         }
 
         lastLoggedMessage = line
-        JotDebugOptions.log(styled(line, color: color))
+        ScribeDebugOptions.log(styled(line, color: color))
     }
 
     private func logErrorLine(
@@ -170,7 +170,7 @@ final class SuggestionDebugLogger {
         let begin = styled("----- BEGIN \(kind.delimiterTitle) -----", color: kind.color)
         let end = styled("----- END \(kind.delimiterTitle) -----", color: kind.color)
 
-        JotDebugOptions.log(
+        ScribeDebugOptions.log(
             """
             \(header)
             \(begin)
