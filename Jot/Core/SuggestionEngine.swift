@@ -1,8 +1,16 @@
 import Foundation
 
+// Determines how CompletionEngine formats the prompt for this engine.
+enum PromptStyle {
+    case foundationModel  // Instruction-following format (Apple Intelligence)
+    case baseText         // Raw text continuation (llama.cpp base models)
+}
+
 /// Common interface for all inference backends.
-/// Conformers: FoundationModelEngine (macOS 26+), OllamaEngine.
+/// Conformers: LlamaEngine, FoundationModelEngine (macOS 26+).
 protocol SuggestionEngine: AnyObject, Sendable {
+    var promptStyle: PromptStyle { get }
+
     /// Returns raw completion text, or nil on failure/empty.
     func complete(systemPrompt: String, userMessage: String, maxTokens: Int) async throws -> String?
 
@@ -12,6 +20,8 @@ protocol SuggestionEngine: AnyObject, Sendable {
 }
 
 extension SuggestionEngine {
+    var promptStyle: PromptStyle { .foundationModel }
+
     func streamComplete(systemPrompt: String, userMessage: String, maxTokens: Int) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task {
@@ -32,29 +42,21 @@ extension SuggestionEngine {
     }
 }
 
-/// Selects the best available engine based on user preference + runtime availability.
+/// Selects the best available engine at runtime.
+/// LlamaEngine is always returned — it loads its model lazily so picking a model mid-session
+/// just works without restarting the app. It throws gracefully when no model is set.
 @MainActor
 enum EngineFactory {
     static func make() -> any SuggestionEngine {
-        let pref = AppSettings.shared.inferenceEngine
-        switch pref {
-        case "foundationModels":
-            if #available(macOS 26.0, *), FoundationModelEngine.isAvailable {
-                DebugLogger.log("[Engine] Using Foundation Models (user override)")
-                return FoundationModelEngine()
-            }
-            DebugLogger.log("[Engine] Foundation Models unavailable, falling back to Ollama")
-            return OllamaEngine()
-        case "ollama":
-            DebugLogger.log("[Engine] Using Ollama (user override)")
-            return OllamaEngine()
-        default:  // "auto"
-            if #available(macOS 26.0, *), FoundationModelEngine.isAvailable {
-                DebugLogger.log("[Engine] Auto-selected Foundation Models")
-                return FoundationModelEngine()
-            }
-            DebugLogger.log("[Engine] Auto-selected Ollama")
-            return OllamaEngine()
-        }
+        DebugLogger.log("[Engine] Using llama.cpp (model loaded lazily on first request)")
+        return LlamaEngine()
+    }
+}
+
+/// Placeholder returned when no engine is configured.
+final class DisabledEngine: SuggestionEngine, @unchecked Sendable {
+    func complete(systemPrompt: String, userMessage: String, maxTokens: Int) async throws -> String? { nil }
+    func streamComplete(systemPrompt: String, userMessage: String, maxTokens: Int) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { $0.finish() }
     }
 }

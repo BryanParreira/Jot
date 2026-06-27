@@ -1,8 +1,7 @@
 enum SettingsKeys {
     static let hasLaunchedBefore = "hasLaunchedBefore"
     static let enabled = "enabled"
-    static let ollamaURL = "ollamaURL"
-    static let model = "model"
+    static let llamaModelPath = "llamaModelPath"
     static let debounceMs = "debounceMs"
     static let completionLength = "completionLength"
     static let contextChars = "contextChars"

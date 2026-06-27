@@ -11,26 +11,13 @@ private struct SidebarItem {
 
 private let sidebarItems: [SidebarItem] = [
     .init(title: "General",         symbol: "gearshape.fill",     color: .systemGray),
-    .init(title: "Model",           symbol: "cpu.fill",           color: .systemPurple),
+    .init(title: "AI",              symbol: "apple.intelligence",  color: .systemPurple),
     .init(title: "Context",         symbol: "doc.text.fill",      color: .systemGreen),
     .init(title: "Personalization", symbol: "person.crop.circle.fill", color: .systemOrange),
     .init(title: "Features",        symbol: "wand.and.stars",     color: .systemPink),
     .init(title: "Statistics",      symbol: "chart.bar.fill",     color: .systemIndigo),
 ]
 
-struct RecommendedModel {
-    let name: String; let ram: String; let quality: String; let note: String
-}
-
-let recommendedModels: [RecommendedModel] = [
-    .init(name: "qwen2.5:1.5b", ram: "8 GB",  quality: "Fast",   note: "Fastest — good for older Macs"),
-    .init(name: "gemma3:2b",    ram: "8 GB",  quality: "Fast",   note: "⭐ Recommended · best quality/speed"),
-    .init(name: "qwen2.5:3b",   ram: "16 GB", quality: "Better", note: "Strong code & writing"),
-    .init(name: "gemma3:latest", ram: "16 GB", quality: "Better", note: "Gemma 3 4B — excellent fluency"),
-    .init(name: "llama3.2:3b",  ram: "16 GB", quality: "Better", note: "Great English fluency"),
-    .init(name: "qwen2.5:7b",   ram: "32 GB", quality: "Best",   note: "Near-perfect completions"),
-    .init(name: "mistral:7b",   ram: "32 GB", quality: "Best",   note: "Excellent general writing"),
-]
 
 // MARK: - Window Controller
 
@@ -166,7 +153,7 @@ private class SettingsPagesVC: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         pageVCs = [
-            GeneralPage(), ModelPage(), ContextPage(),
+            GeneralPage(), AIPage(), ContextPage(),
             PersonalizationPage(), FeaturesPage(), StatsPage()
         ]
         show(0)
@@ -487,300 +474,151 @@ private class GeneralPage: SettingsPage {
             },
         ])
 
-        addSpacer(10)
-        sectionLabel("Connection")
-        card([
-            textFieldRow("Ollama URL", value: AppSettings.shared.ollamaURL,
-                         placeholder: "http://localhost:11434") {
-                AppSettings.shared.ollamaURL = $0
-            },
-        ])
     }
 }
 
-// Model
+// AI
 
-private class ModelPage: SettingsPage {
-    private var popup: NSPopUpButton?
-    private var statusLabel: NSTextField?
-    private var installedModels: Set<String> = []
-    private var recommendedStack: NSStackView?
-
+private class AIPage: SettingsPage {
     override func viewDidLoad() {
         super.viewDidLoad()
-        pageTitle("Model")
+        pageTitle("AI")
 
-        sectionLabel("Inference Engine")
-        buildEngineCard()
-
-        addSpacer(10)
-        sectionLabel("Ollama Model")
-        buildModelCard()
+        sectionLabel("llama.cpp Model")
+        buildLlamaCard()
 
         addSpacer(10)
+        sectionLabel("Apple Intelligence (macOS 26+)")
+        buildAppleIntelligenceCard()
+
+        addSpacer(10)
+        sectionLabel("About")
+        card([
+            aiInfoRow("Model",   value: "Gemma 4 via llama.cpp · Apple Silicon"),
+            aiInfoRow("Privacy", value: "100% on-device · no network · no data leaves Mac"),
+            aiInfoRow("Speed",   value: "<50 ms first token · ~1–2.5 GB RAM"),
+        ])
+    }
+
+    private func aiInfoRow(_ label: String, value: String) -> NSView {
+        let row = SettingsRow()
+        row.addLabel(label)
+        let lbl = NSTextField(labelWithString: value)
+        lbl.font = NSFont.systemFont(ofSize: 12)
+        lbl.textColor = .secondaryLabelColor
+        row.addControl(lbl)
+        return row
+    }
+
+    private func buildLlamaCard() {
+        let modelName = AppSettings.shared.llamaModelName
+        let hasModel = !modelName.isEmpty
+
+        let modelRow = SettingsRow(height: 52)
+        modelRow.addLabel(
+            hasModel ? modelName : "No model selected",
+            subtitle: hasModel ? "GGUF · In-process inference · KV cache reuse" : "Pick a GGUF file to enable llama.cpp completions"
+        )
+
+        let statusBadge = NSTextField(labelWithString: hasModel ? "● Ready" : "● Not configured")
+        statusBadge.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        statusBadge.textColor = hasModel ? .systemGreen : .systemOrange
+        modelRow.addControl(statusBadge)
+
+        let pickRow = SettingsRow()
+        pickRow.addLabel("Model file", subtitle: nil)
+        let pickBtn = NSButton(title: "Choose GGUF…", target: nil, action: nil)
+        pickBtn.bezelStyle = .rounded
+        pickBtn.onAction { [weak self] _ in self?.pickGGUFFile() }
+        pickRow.addControl(pickBtn)
+
+        card([modelRow, pickRow])
+
+        addSpacer(6)
         sectionLabel("Recommended Models")
-        buildRecommendedSection()
+        card([
+            recommendedModelRow(
+                name: "Gemma 4 2B · Q4_K_M",
+                details: "~1.5 GB RAM · Fastest · Apple Silicon",
+                filename: "gemma-4-E2B-i1-Q4_K_M.gguf"
+            ),
+            recommendedModelRow(
+                name: "Gemma 4 4B · Q4_K_M",
+                details: "~2.5 GB RAM · Best quality",
+                filename: "gemma-4-4b-it-Q4_K_M.gguf"
+            ),
+        ])
 
-        fetchModels()
+        // Download hint
+        let hint = NSTextField(labelWithString: "Search Hugging Face for the filename above → download .gguf → Choose GGUF…")
+        hint.font = NSFont.systemFont(ofSize: 11)
+        hint.textColor = .secondaryLabelColor
+        hint.isEditable = false
+        hint.isBordered = false
+        hint.backgroundColor = .clear
+        hint.lineBreakMode = .byWordWrapping
+        hint.preferredMaxLayoutWidth = 450
+        hint.widthAnchor.constraint(equalToConstant: 450).isActive = true
+        contentStack.addArrangedSubview(hint)
     }
 
-    private func buildEngineCard() {
-        let isFoundation: Bool
+    private func recommendedModelRow(name: String, details: String, filename: String) -> NSView {
+        let row = SettingsRow(height: 52)
+        row.addLabel(name, subtitle: details)
+        let lbl = NSTextField(labelWithString: filename)
+        lbl.font = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .regular)
+        lbl.textColor = .tertiaryLabelColor
+        row.addControl(lbl)
+        return row
+    }
+
+    private func buildAppleIntelligenceCard() {
+        let isAvailable: Bool
         if #available(macOS 26.0, *) {
-            isFoundation = AppSettings.shared.inferenceEngine != "ollama"
-                && SystemLanguageModel.default.isAvailable
+            isAvailable = SystemLanguageModel.default.isAvailable
         } else {
-            isFoundation = false
+            isAvailable = false
         }
-
-        let engineName = isFoundation ? "Apple Foundation Models" : "Ollama"
-        let engineDetail = isFoundation
-            ? "On-device • Neural Engine • macOS 26+"
-            : "Local HTTP • ollama.com required"
 
         let row = SettingsRow(height: 52)
-        row.addLabel(engineName, subtitle: engineDetail)
-
-        let pu = NSPopUpButton()
-        pu.addItems(withTitles: ["Auto", "Foundation Models", "Ollama"])
-        pu.widthAnchor.constraint(equalToConstant: 180).isActive = true
-        switch AppSettings.shared.inferenceEngine {
-        case "foundationModels": pu.selectItem(at: 1)
-        case "ollama":           pu.selectItem(at: 2)
-        default:                 pu.selectItem(at: 0)
-        }
-        pu.onAction { ctrl in
-            switch (ctrl as! NSPopUpButton).indexOfSelectedItem {
-            case 1:  AppSettings.shared.inferenceEngine = "foundationModels"
-            case 2:  AppSettings.shared.inferenceEngine = "ollama"
-            default: AppSettings.shared.inferenceEngine = "auto"
-            }
-        }
-        row.addControl(pu)
-
-        let noteRow = SettingsRow()
-        noteRow.addLabel("Note", subtitle: nil)
-        let noteLbl = NSTextField(labelWithString: "Restart Jot after changing engine")
-        noteLbl.font = NSFont.systemFont(ofSize: 11)
-        noteLbl.textColor = .secondaryLabelColor
-        noteRow.addControl(noteLbl)
-
-        card([row, noteRow])
+        row.addLabel(
+            "Apple Intelligence",
+            subtitle: isAvailable
+                ? "On-device · Neural Engine · macOS 26 (fallback when no GGUF model)"
+                : "Enable in System Settings → Apple Intelligence & Siri"
+        )
+        let badge = NSTextField(labelWithString: isAvailable ? "● Available" : "● Unavailable")
+        badge.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        badge.textColor = isAvailable ? .systemGreen : .tertiaryLabelColor
+        row.addControl(badge)
+        card([row])
     }
 
-    private func buildModelCard() {
-        let row = SettingsRow(height: 52)
-        row.addLabel("Model", subtitle: "Select from models installed in Ollama")
+    private func pickGGUFFile() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a GGUF model file"
+        panel.message = "Recommended: gemma-4-E2B-i1-Q4_K_M.gguf (~1.5 GB) or gemma-4-4b-it-Q4_K_M.gguf (~2.5 GB)"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        // No content-type restriction — .gguf has no system UTType. Validate extension after.
+        panel.allowedContentTypes = []
 
-        let rhs = NSStackView()
-        rhs.orientation = .vertical
-        rhs.spacing = 4
-        rhs.alignment = .trailing
-
-        let pu = NSPopUpButton()
-        pu.addItem(withTitle: AppSettings.shared.model)
-        pu.widthAnchor.constraint(equalToConstant: 200).isActive = true
-        pu.onAction { ctrl in
-            AppSettings.shared.model = (ctrl as! NSPopUpButton).titleOfSelectedItem ?? AppSettings.shared.model
-        }
-        self.popup = pu
-
-        let refreshBtn = NSButton(title: "↻  Refresh", target: nil, action: nil)
-        refreshBtn.bezelStyle = .inline
-        refreshBtn.font = NSFont.systemFont(ofSize: 11)
-        refreshBtn.onAction { [weak self] _ in self?.fetchModels() }
-
-        rhs.addArrangedSubview(pu)
-        rhs.addArrangedSubview(refreshBtn)
-        row.addControl(rhs)
-
-        let statusLbl = NSTextField(labelWithString: "Checking Ollama…")
-        statusLbl.font = NSFont.systemFont(ofSize: 11)
-        statusLbl.textColor = .secondaryLabelColor
-        self.statusLabel = statusLbl
-
-        let statusRow = SettingsRow()
-        statusRow.addLabel("Status")
-        statusRow.addControl(statusLbl)
-
-        card([row, statusRow])
-    }
-
-    private func buildRecommendedSection() {
-        let rs = NSStackView()
-        rs.orientation = .vertical
-        rs.spacing = 0
-        rs.widthAnchor.constraint(equalToConstant: 450).isActive = true
-        rs.wantsLayer = true
-        rs.layer?.cornerRadius = 10
-        rs.layer?.borderWidth = 0.5
-        rs.layer?.masksToBounds = true
-        rs.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-        rs.layer?.borderColor = NSColor.separatorColor.cgColor
-        self.recommendedStack = rs
-
-        for (i, model) in recommendedModels.enumerated() {
-            let row = buildRecommendedRow(model: model, isLast: i == recommendedModels.count - 1)
-            rs.addArrangedSubview(row)
-        }
-        contentStack.addArrangedSubview(rs)
-    }
-
-    private func buildRecommendedRow(model: RecommendedModel, isLast: Bool) -> NSView {
-        let container = NSStackView()
-        container.orientation = .vertical
-        container.spacing = 0
-        container.widthAnchor.constraint(equalToConstant: 450).isActive = true
-
-        let row = NSView()
-        row.heightAnchor.constraint(equalToConstant: 52).isActive = true
-        row.widthAnchor.constraint(equalToConstant: 450).isActive = true
-        row.translatesAutoresizingMaskIntoConstraints = false
-
-        // Left: name + note
-        let nameLabel = NSTextField(labelWithString: model.name)
-        nameLabel.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
-        nameLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let noteLabel = NSTextField(labelWithString: model.note)
-        noteLabel.font = NSFont.systemFont(ofSize: 11)
-        noteLabel.textColor = .secondaryLabelColor
-        noteLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let labelStack = NSStackView(views: [nameLabel, noteLabel])
-        labelStack.orientation = .vertical
-        labelStack.spacing = 2
-        labelStack.alignment = .leading
-        labelStack.translatesAutoresizingMaskIntoConstraints = false
-
-        // Middle: badges
-        let ramBadge = badge(model.ram, color: .systemBlue)
-        let qualityColor: NSColor = model.quality == "Fast" ? .systemGreen : model.quality == "Better" ? .systemOrange : .systemPurple
-        let qualityBadge = badge(model.quality, color: qualityColor)
-        let badgeStack = NSStackView(views: [ramBadge, qualityBadge])
-        badgeStack.spacing = 4
-        badgeStack.translatesAutoresizingMaskIntoConstraints = false
-
-        // Right: action button (built later with tag for installed state)
-        let actionBtn = NSButton(title: "", target: nil, action: nil)
-        actionBtn.bezelStyle = .rounded
-        actionBtn.font = NSFont.systemFont(ofSize: 12)
-        actionBtn.widthAnchor.constraint(equalToConstant: 130).isActive = true
-        actionBtn.translatesAutoresizingMaskIntoConstraints = false
-        actionBtn.identifier = NSUserInterfaceItemIdentifier(model.name)
-        let modelName = model.name
-        actionBtn.onAction { [weak self] btn in
-            guard let btn = btn as? NSButton else { return }
-            if self?.installedModels.contains(modelName) == true {
-                AppSettings.shared.model = modelName
-                self?.popup?.selectItem(withTitle: modelName)
-                self?.refreshButtons()
-            } else {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString("ollama pull \(modelName)", forType: .string)
-                btn.title = "✓ Copied!"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self?.refreshButtons()
-                }
-            }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard url.pathExtension.lowercased() == "gguf" else {
+            let alert = NSAlert()
+            alert.messageText = "Not a GGUF file"
+            alert.informativeText = "Please select a file with the .gguf extension."
+            alert.runModal()
+            return
         }
 
-        row.addSubview(labelStack)
-        row.addSubview(badgeStack)
-        row.addSubview(actionBtn)
+        AppSettings.shared.llamaModelPath = url.path
 
-        NSLayoutConstraint.activate([
-            labelStack.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 16),
-            labelStack.centerYAnchor.constraint(equalTo: row.centerYAnchor),
-            labelStack.widthAnchor.constraint(equalToConstant: 160),
-
-            badgeStack.leadingAnchor.constraint(equalTo: labelStack.trailingAnchor, constant: 8),
-            badgeStack.centerYAnchor.constraint(equalTo: row.centerYAnchor),
-
-            actionBtn.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -16),
-            actionBtn.centerYAnchor.constraint(equalTo: row.centerYAnchor),
-        ])
-
-        container.addArrangedSubview(row)
-        if !isLast {
-            let sep = SeparatorLine()
-            container.addArrangedSubview(sep)
-        }
-        return container
-    }
-
-    private func badge(_ text: String, color: NSColor) -> NSView {
-        let lbl = NSTextField(labelWithString: text)
-        lbl.font = NSFont.systemFont(ofSize: 10, weight: .semibold)
-        lbl.textColor = color
-        let bg = NSView()
-        bg.wantsLayer = true
-        bg.layer?.cornerRadius = 4
-        bg.layer?.backgroundColor = color.withAlphaComponent(0.12).cgColor
-        bg.translatesAutoresizingMaskIntoConstraints = false
-        lbl.translatesAutoresizingMaskIntoConstraints = false
-        bg.addSubview(lbl)
-        NSLayoutConstraint.activate([
-            lbl.leadingAnchor.constraint(equalTo: bg.leadingAnchor, constant: 5),
-            lbl.trailingAnchor.constraint(equalTo: bg.trailingAnchor, constant: -5),
-            lbl.topAnchor.constraint(equalTo: bg.topAnchor, constant: 2),
-            lbl.bottomAnchor.constraint(equalTo: bg.bottomAnchor, constant: -2),
-        ])
-        return bg
-    }
-
-    private func fetchModels() {
-        statusLabel?.stringValue = "Connecting to Ollama…"
-        statusLabel?.textColor = .secondaryLabelColor
-        Task {
-            do {
-                let models = try await OllamaClient.shared.availableModels()
-                await MainActor.run {
-                    self.installedModels = Set(models)
-                    self.popup?.removeAllItems()
-                    if models.isEmpty {
-                        self.popup?.addItem(withTitle: AppSettings.shared.model)
-                        self.statusLabel?.stringValue = "No models found — run: ollama pull qwen2.5:1.5b"
-                        self.statusLabel?.textColor = .systemOrange
-                    } else {
-                        self.popup?.addItems(withTitles: models)
-                        if let idx = models.firstIndex(of: AppSettings.shared.model) {
-                            self.popup?.selectItem(at: idx)
-                        }
-                        let plural = models.count == 1 ? "model" : "models"
-                        self.statusLabel?.stringValue = "● Ollama running — \(models.count) \(plural) installed"
-                        self.statusLabel?.textColor = .systemGreen
-                    }
-                    self.refreshButtons()
-                }
-            } catch {
-                await MainActor.run {
-                    self.statusLabel?.stringValue = "● Ollama not running — start with: ollama serve"
-                    self.statusLabel?.textColor = .systemRed
-                    self.popup?.addItem(withTitle: AppSettings.shared.model)
-                }
-            }
-        }
-    }
-
-    private func refreshButtons() {
-        guard let stack = recommendedStack else { return }
-        for sub in stack.arrangedSubviews {
-            for row in (sub as? NSStackView)?.arrangedSubviews ?? [sub] {
-                if let btn = row.subviews.first(where: { $0 is NSButton }) as? NSButton,
-                   let modelName = btn.identifier?.rawValue {
-                    let installed = installedModels.contains(modelName)
-                    let isActive  = AppSettings.shared.model == modelName
-                    if installed {
-                        btn.title = isActive ? "✓ Active" : "Use"
-                        btn.isEnabled = !isActive
-                    } else {
-                        btn.title = "Copy install command"
-                        btn.isEnabled = true
-                    }
-                }
-            }
-        }
+        // Rebuild page content to show new model name.
+        // contentStack is the NSStackView that holds all page rows.
+        contentStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        viewDidLoad()
     }
 }
 
@@ -798,7 +636,7 @@ private class ContextPage: SettingsPage {
                       getter: { AppSettings.shared.clipboardAwareness },
                       setter: { AppSettings.shared.clipboardAwareness = $0 }),
             toggleRow("Screen-Aware Mode",
-                      subtitle: "Suppress suggestions in non-text contexts",
+                      subtitle: "OCR the screen around the cursor to give the model visual context",
                       getter: { AppSettings.shared.screenAwareMode },
                       setter: { AppSettings.shared.screenAwareMode = $0 }),
         ])
@@ -845,10 +683,20 @@ private class PersonalizationPage: SettingsPage {
         ])
 
         addSpacer(10)
+        sectionLabel("What Jot Has Learned")
+        let p = PersonalizationStore.shared
+        card([
+            infoRow("Completions Stored",  value: "\(p.historyCount) / 200"),
+            infoRow("Unique Terms Learned", value: "\(p.uniqueTermsCount)"),
+            infoRow("Phrases Learned",
+                    value: "\(p.topPhrases(n: 999).count)"),
+        ])
+
+        addSpacer(10)
         sectionLabel("Data")
         card([
             buttonRow("Writing History",
-                      subtitle: "Accepted completions used to personalise suggestions",
+                      subtitle: "Erase all learned terms, phrases, and completions",
                       buttonTitle: "Clear History") { [weak self] in
                 self?.confirmClearHistory()
             },
@@ -894,6 +742,16 @@ private class PersonalizationPage: SettingsPage {
             sv.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
         ])
         return container
+    }
+
+    private func infoRow(_ label: String, value: String) -> NSView {
+        let row = SettingsRow()
+        row.addLabel(label)
+        let val = NSTextField(labelWithString: value)
+        val.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        val.textColor = .secondaryLabelColor
+        row.addControl(val)
+        return row
     }
 
     private func confirmClearHistory() {
@@ -1003,11 +861,19 @@ private class StatsPage: SettingsPage {
 
         addSpacer(10)
         sectionLabel("All Time")
+        let activeEngine: String = {
+            let name = AppSettings.shared.llamaModelName
+            if !name.isEmpty { return "llama.cpp · \(name)" }
+            if #available(macOS 26.0, *), SystemLanguageModel.default.isAvailable {
+                return "Apple Intelligence"
+            }
+            return "No model — select a GGUF in Settings → AI"
+        }()
         card([
             infoRow("Completions Accepted", value: "\(s.totalAcceptedAllTime)"),
             infoRow("Words Saved",           value: "~\(s.totalWordsSavedAllTime)"),
             infoRow("Avg Latency",           value: "\(Int(s.averageLatencyMs)) ms"),
-            infoRow("Active Model",          value: AppSettings.shared.model),
+            infoRow("Active Engine",         value: activeEngine),
         ])
 
         addSpacer(10)

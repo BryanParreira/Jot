@@ -32,17 +32,12 @@ class AppSettings: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
-    @UserDefault(SettingsKeys.ollamaURL, defaultValue: "http://localhost:11434")
-    var ollamaURL: String {
+    @UserDefault(SettingsKeys.llamaModelPath, defaultValue: "")
+    var llamaModelPath: String {
         willSet { objectWillChange.send() }
     }
 
-    @UserDefault(SettingsKeys.model, defaultValue: "qwen2.5:1.5b")
-    var model: String {
-        willSet { objectWillChange.send() }
-    }
-
-    @UserDefault(SettingsKeys.debounceMs, defaultValue: 150)
+    @UserDefault(SettingsKeys.debounceMs, defaultValue: 80)
     var debounceMs: Int {
         willSet { objectWillChange.send() }
     }
@@ -52,7 +47,7 @@ class AppSettings: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
-    @UserDefault(SettingsKeys.contextChars, defaultValue: 2000)
+    @UserDefault(SettingsKeys.contextChars, defaultValue: 800)
     var contextChars: Int {
         willSet { objectWillChange.send() }
     }
@@ -134,6 +129,7 @@ class AppSettings: ObservableObject {
     }
 
     static let defaultBlockedBundleIDs: Set<String> = [
+        // Security / credential apps
         "com.apple.keychainaccess",
         "com.apple.SecurityAgent",
         "com.apple.loginwindow",
@@ -141,13 +137,28 @@ class AppSettings: ObservableObject {
         "com.agilebits.onepassword",
         "com.bitwarden.desktop",
         "com.apple.systempreferences",
+        // Terminal emulators — they have native completion; Jot checks these at runtime too
+        "com.apple.Terminal",
+        "com.googlecode.iterm2",
+        "net.kovidgoyal.kitty",
+        "io.alacritty",
+        "com.mitchellh.ghostty",
+        "dev.warp.Warp-Stable",
+        "com.github.wez.wezterm",
+        "io.rio.terminal",
+        "co.zeit.hyper",
     ]
+
+    var llamaModelName: String {
+        let path = llamaModelPath
+        return path.isEmpty ? "" : URL(fileURLWithPath: path).lastPathComponent
+    }
 
     var numPredictTokens: Int {
         switch completionLength {
-        case "short": return 15
-        case "long":  return 60
-        default:      return 30
+        case "short": return 8
+        case "long":  return 40
+        default:      return 20
         }
     }
 

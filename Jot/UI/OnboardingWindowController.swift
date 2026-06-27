@@ -1,5 +1,6 @@
 import Cocoa
 import ApplicationServices
+import FoundationModels
 
 class OnboardingWindowController: NSWindowController {
 
@@ -41,7 +42,7 @@ class OnboardingViewController: NSViewController {
         case 1: showAccessibilityStep()
         case 2: showInputMonitoringStep()
         case 3: showScreenRecordingStep()
-        case 4: showOllamaStep()
+        case 4: showAppleIntelligenceStep()
         default: finish()
         }
     }
@@ -53,7 +54,7 @@ class OnboardingViewController: NSViewController {
 
         let icon = permissionIcon("keyboard", color: .systemBlue)
         let title = heading("Welcome to Jot")
-        let body = paragraph("Jot watches what you type and suggests completions using a local AI model.\n\nEverything runs on your Mac — no cloud, no accounts, no data leaves your device.")
+        let body = paragraph("System-wide inline text completions powered by Gemma 4 running locally on your Mac.\n\n100% on-device · no cloud · no accounts · ~1–2.5 GB RAM")
 
         let btn = primaryButton("Get Started")
         btn.onAction { [weak self] _ in self?.showStep(1) }
@@ -196,54 +197,55 @@ class OnboardingViewController: NSViewController {
         }
     }
 
-    private func showOllamaStep() {
+    private func showAppleIntelligenceStep() {
         let stack = centeredStack()
 
-        let icon = permissionIcon("cpu.fill", color: .systemGreen)
-        let title = heading("Set Up Ollama")
-        let body = paragraph("Jot uses Ollama as its local AI backend. Make sure Ollama is running and you have a model installed.")
+        let hasModel = !AppSettings.shared.llamaModelPath.isEmpty
+        let modelName = AppSettings.shared.llamaModelName
 
-        let codeBlock = NSTextField(labelWithString: "ollama pull qwen2.5:1.5b")
-        codeBlock.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-        codeBlock.backgroundColor = NSColor.controlBackgroundColor
-        codeBlock.drawsBackground = true
-        codeBlock.isBezeled = false
-        codeBlock.wantsLayer = true
-        codeBlock.layer?.cornerRadius = 6
-        codeBlock.layer?.borderWidth = 1
-        codeBlock.layer?.borderColor = NSColor.separatorColor.cgColor
+        let icon = permissionIcon(hasModel ? "checkmark.seal.fill" : "cpu.fill", color: .systemPurple)
+        let title = heading("Choose your AI Model")
+        let body = paragraph(hasModel
+            ? "Model ready: \(modelName)\n\nJot runs Gemma 4 locally — no cloud, no subscriptions."
+            : "Jot runs Gemma 4 locally on your Mac.\n\nDownload a GGUF model from Hugging Face, then pick it below.\n\nRecommended: gemma-4-E2B-i1-Q4_K_M.gguf (~1.5 GB)"
+        )
 
-        let statusLabel = statusBadge("Not checked yet")
+        let statusLabel = statusBadge(hasModel ? "● Model ready" : "● No model selected — pick a GGUF file below")
+        statusLabel.textColor = hasModel ? .systemGreen : .systemOrange
 
-        let checkBtn = secondaryButton("Check Ollama Connection")
-        checkBtn.onAction { _ in
-            statusLabel.stringValue = "Checking…"
-            statusLabel.textColor = .secondaryLabelColor
-            Task {
-                let ok = await OllamaClient.shared.ping()
-                await MainActor.run {
-                    if ok {
-                        statusLabel.stringValue = "✓ Ollama is running"
-                        statusLabel.textColor = .systemGreen
-                    } else {
-                        statusLabel.stringValue = "✗ Ollama not found — install from ollama.com"
-                        statusLabel.textColor = .systemRed
-                    }
-                }
-            }
-        }
-
-        let doneBtn = primaryButton("Done — Start Using Jot")
+        let doneBtn = primaryButton("Start Using Jot")
         doneBtn.onAction { [weak self] _ in self?.finish() }
 
         stack.addArrangedSubview(icon)
         stack.addArrangedSubview(title)
         stack.addArrangedSubview(body)
-        stack.addArrangedSubview(codeBlock)
-        stack.addArrangedSubview(checkBtn)
         stack.addArrangedSubview(statusLabel)
+
+        if !hasModel {
+            let pickBtn = secondaryButton("Choose GGUF…")
+            pickBtn.onAction { [weak self] _ in self?.pickGGUFFromOnboarding() }
+            stack.addArrangedSubview(pickBtn)
+        }
+
         stack.addArrangedSubview(spacer(4))
         stack.addArrangedSubview(doneBtn)
+    }
+
+    private func pickGGUFFromOnboarding() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a GGUF model file"
+        panel.message = "Recommended: gemma-4-E2B-i1-Q4_K_M.gguf (~1.5 GB) or gemma-4-4b-it-Q4_K_M.gguf (~2.5 GB)"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = []
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard url.pathExtension.lowercased() == "gguf" else { return }
+
+        AppSettings.shared.llamaModelPath = url.path
+        // Refresh step to show updated status
+        showStep(4)
     }
 
     private func finish() {

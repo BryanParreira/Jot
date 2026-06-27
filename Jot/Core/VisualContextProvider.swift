@@ -11,7 +11,7 @@ class VisualContextProvider {
 
     private var cachedText: String?
     private var lastCaptureDate: Date?
-    private let cacheSeconds: TimeInterval = 15.0
+    private let cacheSeconds: TimeInterval = 4.0  // 4s: fresh enough to reflect recent edits
 
     private init() {}
 
@@ -71,13 +71,16 @@ class VisualContextProvider {
     // MARK: - Private
 
     private func captureRegion(around caretRect: CGRect?) -> CGRect {
-        guard let caret = caretRect else {
-            return NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+        guard let screen = NSScreen.main else {
+            return CGRect(x: 0, y: 0, width: 1440, height: 900)
         }
-        // 480×200 window around caret — enough context, minimal GPU work
-        let w: CGFloat = 480, h: CGFloat = 200
-        let x = max(0, caret.origin.x - w * 0.25)
-        let y = max(0, caret.origin.y - h * 0.55)
+        guard let caret = caretRect else { return screen.frame }
+
+        // 560×280: captures enough context (title bars, headings, surrounding text) while
+        // keeping the temp CGImage allocation ~50% smaller than the prior 800×400.
+        let w: CGFloat = 560, h: CGFloat = 280
+        let x = max(0, min(caret.origin.x - w * 0.3, screen.frame.maxX - w))
+        let y = max(0, min(caret.origin.y - h * 0.6, screen.frame.maxY - h))
         return CGRect(x: x, y: y, width: w, height: h)
     }
 
@@ -88,18 +91,41 @@ class VisualContextProvider {
                 completion(nil); return
             }
             let lines = obs.compactMap { o -> String? in
-                guard let c = o.topCandidates(1).first, c.confidence >= 0.4 else { return nil }
-                return c.string
+                guard let c = o.topCandidates(1).first, c.confidence >= 0.45 else { return nil }
+                let text = c.string
+                // Drop lines with Unicode replacement glyphs (corrupted OCR)
+                guard !text.contains("\u{FFFD}") else { return nil }
+                // Drop lines that are mostly symbol noise (box-drawing, arrows, decorative glyphs)
+                guard !VisualContextProvider.isSymbolNoiseLine(text) else { return nil }
+                return text
             }
             let text = lines.joined(separator: " ")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             completion(text.isEmpty ? nil : text)
         }
-        request.recognitionLevel = .fast
-        request.usesLanguageCorrection = false
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
 
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         do { try handler.perform([request]) }
         catch { completion(nil) }
+    }
+
+    /// True when more than 25% of the line's characters are uncommon symbols —
+    /// box-drawing chars, arrows, icon ligatures — that corrupt LLM prompt context.
+    private nonisolated static func isSymbolNoiseLine(_ text: String) -> Bool {
+        let commonPunctuation: Set<Character> = [
+            ".", ",", "!", "?", ";", ":", "'", "\"", "(", ")", "[", "]", "{", "}",
+            "-", "/", "&", "%", "$", "#", "@", "*", "+", "=", "<", ">", "`", "~",
+            "_", "|", "\\"
+        ]
+        let scalars = text.unicodeScalars
+        guard !scalars.isEmpty else { return false }
+        let noiseCount = scalars.filter { scalar in
+            let ch = Character(scalar)
+            return !ch.isLetter && !ch.isNumber && !ch.isWhitespace
+                && !commonPunctuation.contains(ch)
+        }.count
+        return Double(noiseCount) / Double(scalars.count) > 0.25
     }
 }

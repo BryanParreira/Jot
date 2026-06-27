@@ -1,5 +1,4 @@
 import Cocoa
-import UserNotifications
 
 enum CompletionState {
     case idle, debouncing, requesting, suggestionShown
@@ -26,7 +25,14 @@ class CompletionEngine: ObservableObject {
 
     // Single reusable debounce timer — cancel/reschedule, never recreate
     private var debounceTimer: Timer?
-    private var debounceInterval: TimeInterval { Double(AppSettings.shared.debounceMs) / 1000.0 }
+    private var lastGenerationLatencyMs: Int?
+    private var debounceInterval: TimeInterval {
+        let ms = DebouncePolicy.milliseconds(
+            lastGenerationLatencyMilliseconds: lastGenerationLatencyMs,
+            fallback: AppSettings.shared.debounceMs
+        )
+        return Double(ms) / 1000.0
+    }
 
     private var pendingTask: Task<Void, Never>?
     private(set) var currentSuggestion: String?
@@ -40,9 +46,9 @@ class CompletionEngine: ObservableObject {
     var hasSuggestion: Bool { state == .suggestionShown }
 
     var activeEngineName: String {
-        if engine is OllamaEngine { return "Ollama" }
-        if #available(macOS 26.0, *), engine is FoundationModelEngine { return "Foundation Models" }
-        return "Unknown"
+        if engine is LlamaEngine { return "llama.cpp" }
+        if #available(macOS 26.0, *), engine is FoundationModelEngine { return "Apple Intelligence" }
+        return "Unavailable"
     }
 
     init(accessibilityManager: AccessibilityManager, clipboardMonitor: ClipboardMonitor) {
@@ -146,7 +152,12 @@ class CompletionEngine: ObservableObject {
         guard let element = accessibilityManager.focusedTextElement() else { return }
         guard !accessibilityManager.isPasswordField(element) else { return }
 
-        if let bid = accessibilityManager.focusedAppBundleID(),
+        let bid = accessibilityManager.focusedAppBundleID()
+
+        // Never suggest inside terminal emulators — they have their own completion
+        if TerminalAppDetector.isTerminal(bundleIdentifier: bid) { return }
+
+        if let bid,
            AppSettings.shared.blockedBundleIDs.contains(bid) { return }
 
         guard let textBefore = accessibilityManager.textBeforeCursor(in: element),
@@ -195,15 +206,25 @@ class CompletionEngine: ObservableObject {
             ? await VisualContextProvider.shared.context(caretRect: lastCursorRect)
             : nil
 
-        let (systemPrompt, userMessage) = contextBuilder.build(
-            textBefore: textBefore,
-            textAfter: textAfter,
-            settings: settings,
-            personalization: PersonalizationStore.shared,
-            clipboard: clipboardMonitor.recentText,
-            bundleID: accessibilityManager.focusedAppBundleID(),
-            visualContext: visualContext
-        )
+        let (systemPrompt, userMessage): (String, String)
+        if engine.promptStyle == .baseText {
+            (systemPrompt, userMessage) = contextBuilder.buildForBaseModel(
+                textBefore: textBefore,
+                textAfter: textAfter,
+                settings: settings,
+                visualContext: visualContext
+            )
+        } else {
+            (systemPrompt, userMessage) = contextBuilder.buildForFoundationModel(
+                textBefore: textBefore,
+                textAfter: textAfter,
+                settings: settings,
+                personalization: PersonalizationStore.shared,
+                clipboard: clipboardMonitor.recentText,
+                bundleID: bid,
+                visualContext: visualContext
+            )
+        }
 
         let numPredict: Int
         switch settings.completionLength {
@@ -237,7 +258,7 @@ class CompletionEngine: ObservableObject {
                     guard self.state == .requesting
                         || (firstShown && self.state == .suggestionShown) else { return }
 
-                    let cleaned = self.postProcess(partial, textBefore: textBefore, textAfter: textAfter)
+                    let cleaned = self.postProcess(partial, textBefore: textBefore, textAfter: textAfter, allowStreaming: !firstShown)
                     guard !cleaned.isEmpty, cleaned != lastCleaned else { continue }
                     lastCleaned = cleaned
 
@@ -246,7 +267,9 @@ class CompletionEngine: ObservableObject {
                         let rect = self.accessibilityManager.cursorScreenRect(in: capturedElement)
                             ?? self.lastCursorRect
                         self.showSuggestion(cleaned, kind: .llm, cursorRect: rect, element: capturedElement)
-                        StatsTracker.shared.recordLatency(Int(Date().timeIntervalSince(startTime) * 1000))
+                        let latencyMs = Int(Date().timeIntervalSince(startTime) * 1000)
+                        StatsTracker.shared.recordLatency(latencyMs)
+                        self.lastGenerationLatencyMs = latencyMs
                         firstShown = true
                     } else {
                         // Subsequent stream ticks — update text, keep position
@@ -260,9 +283,6 @@ class CompletionEngine: ObservableObject {
                     DebugLogger.log("← complete [\(self.activeEngineName)]: \(lastCleaned.prefix(80))")
                 }
 
-            } catch OllamaError.modelNotFound(let model) {
-                self.notifyModelNotFound(model)
-                self.state = .idle
             } catch {
                 if !Task.isCancelled {
                     DebugLogger.log("Completion error: \(error)")
@@ -331,22 +351,28 @@ class CompletionEngine: ObservableObject {
         }
 
         currentSuggestion = rest
+        // Dismiss immediately — prevents overlap at stale cursor position.
+        // AX cursor rect hasn't updated yet synchronously after insertText.
+        overlay.dismiss(animated: false)
 
-        // Re-query actual cursor position after insertion — more reliable than
-        // estimating pixel width, which diverges when font metrics differ from
-        // the target app's rendering (ligatures, kerning, sub-pixel spacing).
-        let font = accessibilityManager.fontForElement(element)
-            ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-        let newRect = accessibilityManager.cursorScreenRect(in: element)
-        if let rect = newRect ?? lastCursorRect {
-            overlay.show(suggestion: rest, at: rect, font: font, color: .placeholderTextColor)
-        }
-
-        // Pasteboard-based apps (Chrome, Electron) update AX cursor asynchronously
-        // after CMD+V fires. Re-query once the paste has settled.
         let capturedElement = element
         let capturedRest    = rest
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { [weak self] in
+
+        // Native apps (Mail, TextEdit): AX updates within ~30ms.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) { [weak self] in
+            guard let self,
+                  self.hasSuggestion,
+                  self.currentSuggestion == capturedRest,
+                  let rect = self.accessibilityManager.cursorScreenRect(in: capturedElement)
+            else { return }
+            let f = self.accessibilityManager.fontForElement(capturedElement)
+                ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            self.overlay.show(suggestion: capturedRest, at: rect, font: f,
+                              color: .placeholderTextColor)
+        }
+
+        // Chromium/Electron: pasteboard paste settles later.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
             guard let self,
                   self.hasSuggestion,
                   self.currentSuggestion == capturedRest,
@@ -390,115 +416,19 @@ class CompletionEngine: ObservableObject {
         }
     }
 
-    private func postProcess(_ raw: String, textBefore: String, textAfter: String?) -> String {
-        var result = raw
-
-        // Collapse to first line only — never show multi-line ghost text
-        if let nl = result.firstIndex(of: "\n") {
-            result = String(result[..<nl])
-        }
-        result = result.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Strip wrapping quotes the model sometimes adds
-        if result.hasPrefix("\"") && result.hasSuffix("\"") && result.count > 2 {
-            result = String(result.dropFirst().dropLast())
-        }
-
-        // Strip instruction-model preamble artifacts ("Here: X", "Sure, X", etc.)
-        let preambles = ["here:", "sure,", "sure:", "certainly,", "certainly:",
-                         "of course,", "completion:", "continuing:", "the next words are",
-                         "the continuation is", "i'll", "let me"]
-        let lower = result.lowercased()
-        for p in preambles {
-            if lower.hasPrefix(p) {
-                result = String(result.dropFirst(p.count)).trimmingCharacters(in: .whitespacesAndNewlines)
-                // Strip leading colon/dash that may follow some preambles
-                if result.hasPrefix(":") || result.hasPrefix("-") {
-                    result = String(result.dropFirst()).trimmingCharacters(in: .whitespaces)
-                }
-                break
-            }
-        }
-
-        // ── Echo stripping ────────────────────────────────────────────────────
-        // 1. Mid-word case: cursor inside a word. Strip any leading chars that
-        //    re-emit the partial word the user already typed ("amaz" → "ing").
-        let endsWithSpace = textBefore.last.map(\.isWhitespace) ?? false
-        if !endsWithSpace {
-            let fragment = textBefore
-                .components(separatedBy: CharacterSet.whitespacesAndNewlines)
-                .last ?? ""
-            if fragment.count >= 2 && result.lowercased().hasPrefix(fragment.lowercased()) {
-                result = String(result.dropFirst(fragment.count))
-            }
-        }
-
-        // 2. Word-by-word suffix-prefix echo: strip words at the start of the
-        //    completion that repeat the tail of preceding text.
-        //    e.g. preceding="hello world", completion="world is great" → "is great"
-        result = stripWordEchoPrefix(result, precedingText: textBefore)
-
-        // 3. Space normalization after echo stripping:
-        //    - Mid-word (cursor inside a word): strip any leading space the model added.
-        //      "h" + " elp" must become "h" + "elp" → "help", not "h elp".
-        //    - Word boundary (cursor after space): strip leading space to prevent double-space.
-        //      "Hello " + " world" must become "Hello " + "world".
-        //    Both cases → always strip leading spaces here.
-        result = String(result.drop(while: { $0 == " " || $0 == "\t" }))
-
-        // 4. Trailing duplication guard: if suggestion duplicates text already
-        //    after the cursor, suppress it entirely (mid-text fill-in case).
-        if let after = textAfter, !after.isEmpty {
-            let foldedResult  = alphanumericFold(result)
-            let foldedAfter   = alphanumericFold(String(after.prefix(80)))
-            if foldedResult.count >= 4 &&
-               (foldedAfter.hasPrefix(foldedResult) || foldedResult.hasPrefix(foldedAfter)) {
-                return ""
-            }
-        }
-
-        // ── Hard word-count cap ───────────────────────────────────────────────
+    private func postProcess(_ raw: String, textBefore: String, textAfter: String?, allowStreaming: Bool = false) -> String {
         let maxWords: Int
         switch AppSettings.shared.completionLength {
         case "short": maxWords = 3
         case "long":  maxWords = 8
         default:      maxWords = 5
         }
-        let tokens = result.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        if tokens.count > maxWords {
-            result = tokens.prefix(maxWords).joined(separator: " ")
-        }
-
-        return result.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : result
-    }
-
-    /// Strip any leading words in `suggestion` that repeat the tail of `precedingText`.
-    private func stripWordEchoPrefix(_ suggestion: String, precedingText: String) -> String {
-        let sWords = suggestion.split(whereSeparator: { $0.isWhitespace })
-        guard !sWords.isEmpty else { return suggestion }
-        let pWords = precedingText.split(whereSeparator: { $0.isWhitespace })
-        guard !pWords.isEmpty else { return suggestion }
-
-        let maxCheck = min(pWords.count, 8)
-        var bestOverlap = 0
-        for depth in 1...maxCheck {
-            let tail = pWords.suffix(depth)
-            let head = sWords.prefix(depth)
-            guard tail.count == head.count else { continue }
-            if zip(tail, head).allSatisfy({ $0.0.caseInsensitiveCompare(String($0.1)) == .orderedSame }) {
-                bestOverlap = depth
-            }
-        }
-        guard bestOverlap > 0 else { return suggestion }
-        if bestOverlap >= sWords.count { return "" }
-        // Use startIndex of the first non-echoed word so we keep it, not skip it.
-        // .endIndex pointed past that word — was silently dropping one extra word.
-        let from = sWords[bestOverlap].startIndex
-        return String(suggestion[from...])
-    }
-
-    private func alphanumericFold(_ text: String) -> String {
-        String(text.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+        return CompletionPostProcessor.process(
+            raw: raw,
+            textBefore: textBefore,
+            textAfter: textAfter,
+            maxWords: maxWords
+        )
     }
 
     private func cancelAll() {
@@ -517,11 +447,4 @@ class CompletionEngine: ObservableObject {
         overlay.dismiss(animated: false)  // instant — typing continues
     }
 
-    private func notifyModelNotFound(_ model: String) {
-        let content = UNMutableNotificationContent()
-        content.title = "Jot: Model Not Found"
-        content.body = "Run: ollama pull \(model)"
-        let req = UNNotificationRequest(identifier: "jot.model.notfound", content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(req, withCompletionHandler: nil)
-    }
 }

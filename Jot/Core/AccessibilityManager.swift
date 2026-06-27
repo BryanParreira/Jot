@@ -34,13 +34,30 @@ class AccessibilityManager {
     func isPasswordField(_ element: AXUIElement) -> Bool {
         var roleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
-        let role = roleRef as? String ?? ""
+        let role = roleRef as? String
+
         if role == "AXSecureTextField" { return true }
 
         var subroleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subroleRef)
-        let subrole = subroleRef as? String ?? ""
-        return subrole == "AXSecureTextField"
+        let subrole = subroleRef as? String
+
+        var roleDescRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXRoleDescriptionAttribute as CFString, &roleDescRef)
+        let roleDesc = roleDescRef as? String
+
+        var titleRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleRef)
+        let title = titleRef as? String
+
+        var descRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXDescriptionAttribute as CFString, &descRef)
+        let desc = descRef as? String
+
+        return SecureFieldMarkers.isSecure(
+            role: role, subrole: subrole, roleDescription: roleDesc,
+            title: title, label: desc
+        )
     }
 
     func textValue(of element: AXUIElement) -> String? {
