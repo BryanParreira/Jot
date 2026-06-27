@@ -101,7 +101,7 @@ change as shipping to end users, not as an exercise.
 
 ## Debugging & Logs
 
-Jot ships a structured logging system built for AI-assisted debugging. During development
+Scribe ships a structured logging system built for AI-assisted debugging. During development
 the app is launched with `-scribe-debug`, which enables on-disk JSONL sinks in addition to
 the always-on Console.app stream.
 
@@ -124,7 +124,7 @@ e.g. to get Console `.debug` output without the heavier file/screenshot artifact
   `Scribe Dev` scheme — the daily-driver way to run from Xcode — ships a separate app identity,
   and its logs land in the identity's own directory. When debugging a dev-built app, read that
   directory first; an apparently silent `~/Library/Logs/Scribe/` does not mean the flag is off.
-- `~/Desktop/jot-ax-dump.txt` — most recent Chrome AX tree snapshot. Overwritten on each
+- `~/Desktop/scribe-ax-dump.txt` — most recent Chrome AX tree snapshot. Overwritten on each
   Chrome focus change (debounced by focused-element identity).
 - Rotated previous logs: `*.jsonl.1` (one-step rotation when a file exceeds 10 MB).
 
@@ -160,7 +160,7 @@ jq 'select(.category == "runtime")' ~/Library/Logs/Scribe/scribe.jsonl
   acceptance
 - Model won't load / decode fails → `runtime` + `models`
 - Permission dialog loop → `app` (permission state transitions)
-- Chrome-specific weirdness → start with `~/Desktop/jot-ax-dump.txt`, then `focus`
+- Chrome-specific weirdness → start with `~/Desktop/scribe-ax-dump.txt`, then `focus`
 - Wrong backend chosen → `suggestion` router selection log (`engine`, `fallback_engine`)
 
 **Console.app fallback** (when `-scribe-debug` wasn't set or the user hasn't relaunched yet):
@@ -170,9 +170,9 @@ log show --predicate 'subsystem == "com.bryanbernardo.scribe"' --last 10m
 log stream --predicate 'subsystem == "com.bryanbernardo.scribe"' --level debug
 ```
 
-Note the default verbosity floor is `.info`, so Jot's `.debug`/`.trace` lines are not emitted
+Note the default verbosity floor is `.info`, so Scribe's `.debug`/`.trace` lines are not emitted
 unless the app was launched with `-scribe-debug` or `SCRIBE_LOG_LEVEL=debug`. The `--level debug`
-flag above controls what `log` *displays*, not what Jot *emits*. The `.info`, warning, and error
+flag above controls what `log` *displays*, not what Scribe *emits*. The `.info`, warning, and error
 lines (including model-load config and permission transitions) always stream.
 
 **Rule of thumb.** When a user reports a bug, first `tail` / `jq` the relevant file with the
@@ -194,7 +194,7 @@ xcodebuild -project Scribe.xcodeproj -scheme Scribe -destination 'platform=macOS
 
 Always pass `-derivedDataPath build/DerivedData` so output lands in the
 repo-scoped `build/` (already gitignored) instead of accumulating under
-`~/Library/Developer/Xcode/DerivedData/Jot-*`, where every build leaves a
+`~/Library/Developer/Xcode/DerivedData/Scribe-*`, where every build leaves a
 fresh multi-GB module cache and SwiftPM checkout that nothing trims. When a
 task is done and the build artifacts are no longer needed, `rm -rf
 build/DerivedData` before reporting completion.
