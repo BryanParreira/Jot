@@ -280,12 +280,12 @@ extension WelcomeView {
             Spacer(minLength: 0)
 
             VStack(spacing: 24) {
-                Image("JotLogo")
+                Image("ScribeLogo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 84, height: 84)
                     .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
-                    .shadow(color: JotBrand.accent.opacity(0.45), radius: 22, y: 8)
+                    .shadow(color: ScribeBrand.accent.opacity(0.45), radius: 22, y: 8)
                     .onboardingReveal(0)
 
                 VStack(spacing: 8) {
@@ -332,7 +332,7 @@ private struct WelcomeFeatureChip: View {
         HStack(spacing: 5) {
             Image(systemName: systemImage)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(JotBrand.accent)
+                .foregroundStyle(ScribeBrand.accent)
 
             Text(label)
                 .font(.system(size: 11, weight: .medium, design: .rounded))

@@ -7,7 +7,7 @@ import Foundation
 extension Bundle {
     /// Short marketing version prefixed for display (e.g. "v1.0"), or nil when the bundle carries
     /// no version string (some test hosts).
-    var cotabbyDisplayVersion: String? {
+    var scribeDisplayVersion: String? {
         guard let shortVersion = object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
               !shortVersion.isEmpty else {
             return nil

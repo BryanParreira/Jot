@@ -5,7 +5,7 @@ import SwiftUI
 /// the permission reminder, and the Settings Home hero). Pinned rather than derived from
 /// `Color.accentColor` so brand moments stay on-brand even when the user picks a different system
 /// accent; ordinary interactive controls should keep following the system accent.
-enum JotBrand {
+enum ScribeBrand {
     /// The deep ink indigo — brand color, sampled from the quill icon (#4C33D4). Identical in both
     /// appearances.
     static let accent = Color(red: 0.298, green: 0.200, blue: 0.831)

@@ -5,7 +5,7 @@ import SwiftUI
 /// chrome, entrance choreography, and the step header / navigation / progress components every
 /// step composes. Keeping the vocabulary in one file is what keeps the six steps reading as one
 /// designed surface instead of six separately-styled screens. The brand palette itself lives in
-/// `JotBrand` (shared with Settings' brand moments); the keycap chrome lives in `KeycapView`
+/// `ScribeBrand` (shared with Settings' brand moments); the keycap chrome lives in `KeycapView`
 /// (shared with the Shortcuts pane).
 ///
 /// Two constraints shape everything here:
@@ -34,14 +34,14 @@ struct OnboardingBackdrop: View {
             // Two offset radial washes rather than one centered one: the asymmetry keeps the
             // gradient from reading as a spotlight and gives the titlebar region gentle color.
             RadialGradient(
-                colors: [JotBrand.accent.opacity(colorScheme == .dark ? 0.26 : 0.14), .clear],
+                colors: [ScribeBrand.accent.opacity(colorScheme == .dark ? 0.26 : 0.14), .clear],
                 center: UnitPoint(x: 0.15, y: -0.1),
                 startRadius: 10,
                 endRadius: 460
             )
 
             RadialGradient(
-                colors: [JotBrand.accentSoft.opacity(colorScheme == .dark ? 0.16 : 0.10), .clear],
+                colors: [ScribeBrand.accentSoft.opacity(colorScheme == .dark ? 0.16 : 0.10), .clear],
                 center: UnitPoint(x: 0.95, y: 0.0),
                 startRadius: 10,
                 endRadius: 420
@@ -152,7 +152,7 @@ extension View {
 /// secondary subtitle. One component so typography can never drift between steps.
 struct OnboardingStepHeader: View {
     var systemImage: String?
-    var tint: Color = JotBrand.accent
+    var tint: Color = ScribeBrand.accent
     let title: String
     let subtitle: String
 
@@ -202,14 +202,14 @@ struct OnboardingProgressPips: View {
         if index == current {
             return AnyShapeStyle(
                 LinearGradient(
-                    colors: [JotBrand.accentSoft, JotBrand.accent],
+                    colors: [ScribeBrand.accentSoft, ScribeBrand.accent],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
         }
         if index < current {
-            return AnyShapeStyle(JotBrand.accent.opacity(0.55))
+            return AnyShapeStyle(ScribeBrand.accent.opacity(0.55))
         }
         return AnyShapeStyle(Color.secondary.opacity(0.22))
     }
@@ -231,7 +231,7 @@ struct WelcomeButton: View {
                 .padding(.vertical, 2)
         }
         .buttonStyle(.borderedProminent)
-        .tint(JotBrand.accent)
+        .tint(ScribeBrand.accent)
         .controlSize(.large)
     }
 }
@@ -262,7 +262,7 @@ struct WelcomeNavigation: View {
                 onContinue()
             }
             .buttonStyle(.borderedProminent)
-            .tint(JotBrand.accent)
+            .tint(ScribeBrand.accent)
             .controlSize(.large)
             .disabled(!canContinue)
             .help(canContinue ? "" : (disabledHint ?? ""))

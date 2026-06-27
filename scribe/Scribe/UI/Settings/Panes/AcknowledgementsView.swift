@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// File overview:
-/// Modal sheet listing the third-party packages Cotabby ships with. Lightweight by design: each
-/// row names the project, summarizes what it does for Cotabby, and links to its repo. The intent
+/// Modal sheet listing the third-party packages Scribe ships with. Lightweight by design: each
+/// row names the project, summarizes what it does for Scribe, and links to its repo. The intent
 /// is attribution, not a full license dump; the GitHub repo carries the verbatim license texts.
 struct AcknowledgementsView: View {
     let onClose: () -> Void
@@ -55,7 +55,7 @@ struct AcknowledgementsView: View {
         ),
         AcknowledgementEntry(
             name: "swift-log",
-            summary: "Logging façade Jot uses across runtime, focus, and suggestion subsystems.",
+            summary: "Logging façade Scribe uses across runtime, focus, and suggestion subsystems.",
             url: "https://github.com/apple/swift-log"
         ),
         AcknowledgementEntry(
@@ -67,8 +67,8 @@ struct AcknowledgementsView: View {
             url: "https://github.com/wolfgarbe/SymSpell"
         ),
         AcknowledgementEntry(
-            name: "CotabbyInference (llama.cpp)",
-            summary: "Swift wrapper around llama.cpp that exposes the inference API Jot links against.",
+            name: "CotabbyInference",
+            summary: "Swift package wrapping llama.cpp that exposes the inference API Scribe links against.",
             url: "https://github.com/FuJacob/cotabbyinference"
         )
     ]

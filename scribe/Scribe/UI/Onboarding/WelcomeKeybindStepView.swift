@@ -188,7 +188,7 @@ private struct OnboardingKeycapHero: View {
             .scaleEffect(pressed ? 0.96 : 1.0)
             .offset(y: pressed ? 2 : 0)
             .shadow(
-                color: JotBrand.accent.opacity(pressed ? 0.1 : 0.25),
+                color: ScribeBrand.accent.opacity(pressed ? 0.1 : 0.25),
                 radius: pressed ? 6 : 14,
                 y: pressed ? 2 : 6
             )

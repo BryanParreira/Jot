@@ -53,7 +53,7 @@ struct WelcomePersonalizeStepView: View {
             HStack(spacing: 7) {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(JotBrand.accent)
+                    .foregroundStyle(ScribeBrand.accent)
 
                 Text(title)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))

@@ -100,7 +100,7 @@ struct SettingsSidebarView: View {
 
     /// Short marketing version (e.g. "v1.0"), or nil if the bundle has no version string.
     private var appVersionText: String? {
-        Bundle.main.cotabbyDisplayVersion
+        Bundle.main.scribeDisplayVersion
     }
 
     private var selectionBinding: Binding<SettingsCategory> {

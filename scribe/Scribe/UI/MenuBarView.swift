@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// File overview:
-/// Composes Jot's primary menu-bar control panel as a status-first surface
+/// Composes Scribe's primary menu-bar control panel as a status-first surface
 /// with inline quick controls for session-level preferences.
 ///
 /// Design philosophy: the menu bar is the primary interaction surface for a menu bar app.
@@ -72,15 +72,6 @@ struct MenuBarView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Version \(appShortVersion)")
-            }
-
-            // Ko-fi tip jar lives next to the title because the menu bar surface is the most
-            // frequented entry point. Using a Link lets SwiftUI hand the URL to NSWorkspace and
-            // dismiss the popover; a Button would need its own handler plumbing for the same effect.
-            if let kofiURL = URL(string: "https://ko-fi.com/cotabby") {
-                Link("Support Us", destination: kofiURL)
-                    .buttonStyle(.borderless)
-                    .font(.subheadline)
             }
 
             Spacer(minLength: 0)

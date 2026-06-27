@@ -4,7 +4,7 @@ import SwiftUI
 /// File overview:
 /// "About" detail pane of the redesigned Settings window. Consolidates what used to live across
 /// three legacy sections (header, support CTA, uninstall) plus a new Acknowledgements modal that
-/// lists the third-party packages Cotabby ships with.
+/// lists the third-party packages Scribe ships with.
 struct AboutPaneView: View {
     let appUpdateManager: AppUpdateManager
 
@@ -25,7 +25,7 @@ struct AboutPaneView: View {
     @ViewBuilder
     private var aboutHeader: some View {
         HStack(spacing: 12) {
-            Image("JotLogo")
+            Image("ScribeLogo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 40, height: 40)
@@ -64,25 +64,17 @@ struct AboutPaneView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(
-                    "Jot started from a simple belief: AI should run on your device, "
+                    "Scribe started from a simple belief: AI should run on your device, "
                     + "respect your privacy, and remain open to everyone."
                 )
 
                 Text(
-                    "We're building Jot in our spare time, one release at a time. "
-                    + "If Jot has helped you, your support helps us keep improving it."
+                    "Built with llama.cpp and Gemma — completely free, completely local, "
+                    + "no API keys required."
                 )
             }
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-
-            if let supportURL = URL(string: "https://ko-fi.com/cotabby") {
-                Link(destination: supportURL) {
-                    Label("Support Jot", systemImage: "heart.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.blue)
-            }
         }
     }
 
@@ -90,18 +82,6 @@ struct AboutPaneView: View {
     /// search can scroll to and pulse individually.
     @ViewBuilder
     private var resourceRows: some View {
-        if let repoURL = URL(string: "https://github.com/FuJacob/Cotabby") {
-            Link(destination: repoURL) {
-                Label("GitHub Repository", systemImage: "chevron.left.forwardslash.chevron.right")
-            }
-            .settingsItem(.githubRepository)
-        }
-        if let wikiURL = URL(string: "https://github.com/FuJacob/Cotabby/wiki") {
-            Link(destination: wikiURL) {
-                Label("Wiki & Contributor Guide", systemImage: "book")
-            }
-            .settingsItem(.wiki)
-        }
         Button {
             isShowingAcknowledgements = true
         } label: {
@@ -114,8 +94,8 @@ struct AboutPaneView: View {
     @ViewBuilder
     private var uninstallText: some View {
         Text(
-            "Remove Jot from Applications. To fully clean up app data, "
-            + "delete ~/Library/Application Support/Jot."
+            "Remove Scribe from Applications. To fully clean up app data, "
+            + "delete ~/Library/Application Support/Scribe."
         )
         .font(.caption)
         .foregroundStyle(.secondary)

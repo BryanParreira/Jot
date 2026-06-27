@@ -98,14 +98,14 @@ struct HomePaneView: View {
 
     private var hero: some View {
         VStack(spacing: 10) {
-            Image("JotLogo")
+            Image("ScribeLogo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 // The brand-blue glow the onboarding welcome hero casts, scaled to this logo size,
                 // so finishing onboarding and landing on Home reads as one continuous surface.
-                .shadow(color: JotBrand.accent.opacity(0.4), radius: 16, y: 6)
+                .shadow(color: ScribeBrand.accent.opacity(0.4), radius: 16, y: 6)
                 .scaleEffect(hasAppeared ? 1 : 0.9)
                 .opacity(hasAppeared ? 1 : 0)
 
@@ -138,7 +138,7 @@ struct HomePaneView: View {
     }
 
     private var appVersionText: String? {
-        Bundle.main.cotabbyDisplayVersion
+        Bundle.main.scribeDisplayVersion
     }
 
     // MARK: - Search
@@ -377,21 +377,7 @@ struct HomePaneView: View {
         HStack(spacing: 6) {
             Text("Free & open source")
             footerDot
-            if let repoURL = URL(string: "https://github.com/FuJacob/Cotabby") {
-                Link("GitHub", destination: repoURL)
-            }
-            footerDot
-            if let supportURL = URL(string: "https://ko-fi.com/cotabby") {
-                Link(destination: supportURL) {
-                    Label("Support", systemImage: "heart.fill")
-                        .labelStyle(.titleAndIcon)
-                        .foregroundStyle(.pink)
-                }
-            }
-            footerDot
-            if let wikiURL = URL(string: "https://github.com/FuJacob/Cotabby/wiki") {
-                Link("Wiki", destination: wikiURL)
-            }
+            Text("Powered by llama.cpp")
         }
         .font(.caption)
         .foregroundStyle(.secondary)
