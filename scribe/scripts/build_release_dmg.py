@@ -31,11 +31,12 @@ from textwrap import dedent
 
 # The committed background art is authored at 2x. Finder window dimensions use point-sized
 # coordinates so the mounted DMG opens compactly without scrollbars while preserving crisp art.
-WINDOW_WIDTH = 540
-WINDOW_HEIGHT = 760
+# Horizontal layout: App on left, Applications on right — standard macOS installer convention.
+WINDOW_WIDTH = 660
+WINDOW_HEIGHT = 400
 ICON_SIZE = 128
-APP_ICON_LOCATION = (270, 280)
-APPLICATIONS_ICON_LOCATION = (270, 635)
+APP_ICON_LOCATION = (165, 185)
+APPLICATIONS_ICON_LOCATION = (495, 185)
 
 
 def parse_args() -> argparse.Namespace:
