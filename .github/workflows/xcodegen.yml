@@ -1,0 +1,54 @@
+# XcodeGen drift gate.
+#
+# The .xcodeproj is generated from project.yml but committed to the repo so
+# contributors can open Scribe.xcodeproj without installing XcodeGen first.
+# This job regenerates on every PR and fails if the result differs from
+# what's checked in — catching manual pbxproj edits that weren't mirrored
+# into project.yml.
+
+name: XcodeGen
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scribe/project.yml'
+      - 'scribe/Scribe.xcodeproj/**'
+  push:
+    branches: [main]
+    paths:
+      - 'scribe/project.yml'
+      - 'scribe/Scribe.xcodeproj/**'
+
+concurrency:
+  group: xcodegen-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    name: project.yml matches Scribe.xcodeproj
+    runs-on: macos-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: scribe
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install / verify XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Regenerate project
+        run: xcodegen generate
+
+      - name: Verify no drift
+        run: |
+          if ! git diff --exit-code -- Scribe.xcodeproj; then
+            echo "::error::Scribe.xcodeproj is out of sync with project.yml." \
+              "Run 'xcodegen generate' and commit the result." >&2
+            exit 1
+          fi

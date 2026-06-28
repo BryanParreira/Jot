@@ -1,11 +1,10 @@
-# Tag-driven release pipeline for Cotabby.
+# Tag-driven release pipeline for Scribe.
 #
 # Discrete jobs so a failure at one stage doesn't force a full re-run:
 #
 # 1. build:    validate metadata, archive + Developer ID sign, package DMG
 # 2. notarize: submit DMG to Apple notarization, poll, staple
 # 3. publish:  Sparkle-sign appcast, create GitHub Release, deploy Pages
-# 4. update-homebrew-cask: dispatch version bump to the tap (publish only)
 #
 # The DMG flows between jobs as a GitHub Actions artifact. Sparkle tools are
 # re-downloaded in publish (fast curl) rather than carried as an artifact.
@@ -36,10 +35,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  APP_NAME: Cotabby
-  DMG_NAME: Cotabby.dmg
-  PROJECT_PATH: Cotabby.xcodeproj
-  SCHEME: Cotabby
+  APP_NAME: Scribe
+  DMG_NAME: Scribe.dmg
+  PROJECT_PATH: Scribe.xcodeproj
+  SCHEME: Scribe
   CONFIGURATION: Release
   PAGES_CUSTOM_DOMAIN: updates.cotabby.app
   NOTARIZATION_TIMEOUT_SECONDS: 3300
@@ -52,8 +51,8 @@ jobs:
   # ---------------------------------------------------------------------------
   # 1. BUILD
   # Validate metadata, import certificates, xcodebuild archive, re-sign nested
-  # code, package the DMG. Uploads the unsigned-but-signed DMG as an artifact
-  # for the notarize job.
+  # code, package the DMG. Uploads the signed DMG as an artifact for the
+  # notarize job.
   # ---------------------------------------------------------------------------
   build:
     name: Build, sign, and package DMG
@@ -61,6 +60,9 @@ jobs:
     timeout-minutes: 120
     permissions:
       contents: read
+    defaults:
+      run:
+        working-directory: scribe
     outputs:
       release_version: ${{ steps.metadata.outputs.release_version }}
       release_tag: ${{ steps.metadata.outputs.release_tag }}
@@ -89,7 +91,7 @@ jobs:
           swift --version
 
       # Package.resolved is gitignored, so SwiftPM must materialize it before
-      # the next step can read the Sparkle pin out of it (mirrors build.yml).
+      # the next step can read the Sparkle pin out of it.
       - name: Resolve Swift package dependencies
         run: |
           xcodebuild \
@@ -98,10 +100,7 @@ jobs:
 
       - name: Install DMG packaging dependencies
         run: |
-          set -euo pipefail
-
-          python3 -m pip install --upgrade pip
-          python3 -m pip install "dmgbuild[badge_icons]==1.6.7"
+          brew install create-dmg
 
       - name: Resolve Sparkle version
         id: sparkle-version
@@ -110,7 +109,7 @@ jobs:
 
           sparkle_version="$(python3 -c "
           import json, sys
-          resolved = json.load(open('Cotabby.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'))
+          resolved = json.load(open('Scribe.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'))
           pins = {p['identity']: p for p in resolved['pins']}
           if 'sparkle' not in pins:
               print('Sparkle not found in Package.resolved', file=sys.stderr)
@@ -133,9 +132,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Download the official Sparkle release tarball directly rather than
-          # scavenging DerivedData, where SPM artifact extraction is
-          # non-deterministic.
           sparkle_dir="${RUNNER_TEMP}/sparkle-tools"
           mkdir -p "${sparkle_dir}"
 
@@ -190,11 +186,11 @@ jobs:
 
           expected_public_key="$(/usr/libexec/PlistBuddy \
             -c 'Print :SUPublicEDKey' \
-            CotabbyInfo.plist)"
+            ScribeInfo.plist)"
           actual_public_key="$("${GENERATE_KEYS_TOOL}" -p)"
 
           if [[ "${actual_public_key}" != "${expected_public_key}" ]]; then
-            echo "Sparkle private key does not match SUPublicEDKey in CotabbyInfo.plist." >&2
+            echo "Sparkle private key does not match SUPublicEDKey in ScribeInfo.plist." >&2
             exit 1
           fi
 
@@ -216,29 +212,18 @@ jobs:
             publish="${INPUT_PUBLISH:-false}"
           fi
 
-          # Reject malformed tags before we spend ~30 minutes signing and notarizing.
-          # The push-trigger glob filters most of this, but workflow_dispatch and
-          # any future trigger broadening should still hit this gate. Accepted forms:
-          #   v1.2.3
-          #   v1.2.3-beta, v1.2.3-beta.1, v1.2.3-rc.2, v1.2.3-alpha.10+build.5
           semver_re='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
           if [[ ! "${release_tag}" =~ ${semver_re} ]]; then
             echo "Release tag ${release_tag} is not valid SemVer (expected v1.2.3 or v1.2.3-beta)." >&2
-            echo "If you pushed a tag, delete it locally and on origin, then retag." >&2
             exit 1
           fi
 
-          # Anything after the patch hyphen marks this as a prerelease channel.
           if [[ "${release_version}" == *-* ]]; then
             is_prerelease="true"
           else
             is_prerelease="false"
           fi
 
-          # Use the workflow run number as the build number. It auto-increments
-          # per workflow run, is always positive, and requires no formulas or
-          # edge-case handling. Sparkle only needs build numbers to increase
-          # monotonically — it doesn't care about gaps or specific values.
           build_number="${{ github.run_number }}"
 
           echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
@@ -273,7 +258,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          keychain_path="${RUNNER_TEMP}/cotabby-release.keychain-db"
+          keychain_path="${RUNNER_TEMP}/scribe-release.keychain-db"
           keychain_password="$(uuidgen)"
           certificate_path="${RUNNER_TEMP}/developer-id-application.p12"
 
@@ -305,8 +290,6 @@ jobs:
 
           mkdir -p build
 
-          # "0.0.1-beta" is kept as-is so users see the full version
-          # string including the channel tag.
           xcodebuild archive \
             -project "${PROJECT_PATH}" \
             -scheme "${SCHEME}" \
@@ -344,10 +327,6 @@ jobs:
           app_path="build/${APP_NAME}.xcarchive/Products/Applications/${APP_NAME}.app"
           signing_identity="Developer ID Application"
 
-          # Xcode signs the top-level app and frameworks, but Sparkle's embedded helper
-          # executables can remain ad-hoc signed after package integration. Apple
-          # notarization rejects ad-hoc nested executables in a Developer ID app, so we
-          # perform a final inside-out signing pass over the archived product.
           nested_code=(
             "${app_path}/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
             "${app_path}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app"
@@ -371,10 +350,6 @@ jobs:
 
           codesign --verify --deep --strict --verbose=4 "${app_path}"
 
-          # Catch any executable inside Sparkle.framework that the hardcoded
-          # list above missed. If Sparkle reorganizes its internals in a future
-          # version, this prevents shipping unsigned code that Apple will reject.
-          # Uses BSD find's -perm +111 (macOS runners only).
           unsigned="$(find "${app_path}/Contents/Frameworks/Sparkle.framework" \
             -type f -perm +111 \
             -exec sh -c 'codesign -dvv "$1" 2>&1 | grep -q "Developer ID" || echo "$1"' _ {} \;)"
@@ -403,7 +378,7 @@ jobs:
             --output-path "${dmg_path}" \
             --background-path "assets/release/dmg_background.png" \
             --background-2x-path "assets/release/dmg_background@2x.png" \
-            --volume-name "Cotabby"
+            --volume-name "Scribe"
 
           codesign \
             --force \
@@ -417,9 +392,8 @@ jobs:
       - name: Upload DMG for notarization
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: cotabby-dmg
-          path: build/${{ env.DMG_NAME }}
-          # Short retention — the notarized copy is what matters long-term.
+          name: scribe-dmg
+          path: scribe/build/${{ env.DMG_NAME }}
           retention-days: 1
 
       - name: Upload build diagnostics
@@ -427,15 +401,14 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: build-artifacts
-          path: build/${{ env.APP_NAME }}.xcarchive/
+          path: scribe/build/${{ env.APP_NAME }}.xcarchive/
           if-no-files-found: ignore
 
   # ---------------------------------------------------------------------------
   # 2. NOTARIZE
   # Downloads the signed DMG, submits to Apple notarization, polls until
   # Accepted (or times out / is rejected), staples the ticket, then uploads
-  # the stapled DMG for the publish job. Separated so a notarization rejection
-  # or Apple-server timeout can be retried without rebuilding.
+  # the stapled DMG for the publish job.
   # ---------------------------------------------------------------------------
   notarize:
     name: Notarize and staple DMG
@@ -450,7 +423,7 @@ jobs:
       - name: Download DMG artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: cotabby-dmg
+          name: scribe-dmg
           path: build
 
       - name: Configure Apple notarization credentials
@@ -461,7 +434,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          xcrun notarytool store-credentials "cotabby-notarytool-profile" \
+          xcrun notarytool store-credentials "scribe-notarize" \
             --apple-id "${APPLE_ID}" \
             --team-id "${APPLE_TEAM_ID}" \
             --password "${APPLE_APP_SPECIFIC_PASSWORD}"
@@ -524,10 +497,8 @@ jobs:
               return
             fi
 
-            # Apple only returns a useful log once processing has completed. This
-            # best-effort call still captures stderr when the log is unavailable.
             xcrun notarytool log "${submission_id}" \
-              --keychain-profile "cotabby-notarytool-profile" \
+              --keychain-profile "scribe-notarize" \
               "${log_json}" \
               > "${log_stdout}" \
               2> "${log_stderr}" || true
@@ -536,7 +507,7 @@ jobs:
           trap write_summary EXIT
 
           if ! xcrun notarytool submit "${dmg_path}" \
-            --keychain-profile "cotabby-notarytool-profile" \
+            --keychain-profile "scribe-notarize" \
             --output-format json \
             > "${submit_json}" \
             2> "${submit_stderr}"; then
@@ -561,7 +532,7 @@ jobs:
             timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
             if xcrun notarytool info "${submission_id}" \
-              --keychain-profile "cotabby-notarytool-profile" \
+              --keychain-profile "scribe-notarize" \
               --output-format json \
               > "${info_json}" \
               2> "${info_stderr}"; then
@@ -589,7 +560,6 @@ jobs:
               Invalid|Rejected)
                 fetch_notarization_log
                 echo "Notarization finished with status ${final_status}." >&2
-                echo "See the uploaded ${diagnostics_dir}/ diagnostics for the Apple notary log." >&2
                 exit 1
                 ;;
               "In Progress"|"")
@@ -603,7 +573,6 @@ jobs:
               final_status="timed out after ${notary_timeout_seconds}s"
               fetch_notarization_log
               echo "Timed out waiting for notarization submission ${submission_id}." >&2
-              echo "See the uploaded ${diagnostics_dir}/ diagnostics for submit/info/log output." >&2
               exit 1
             fi
 
@@ -620,17 +589,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Checksum the stapled DMG that gets uploaded to the release so the
-          # Homebrew cask points at the exact bytes users download. Computed
-          # after stapling because stapling rewrites the DMG in place.
           dmg_sha256="$(shasum -a 256 "build/${DMG_NAME}" | awk '{ print $1 }')"
           echo "dmg_sha256=${dmg_sha256}" >> "$GITHUB_OUTPUT"
-          echo "Cotabby.dmg SHA-256: ${dmg_sha256}"
+          echo "Scribe.dmg SHA-256: ${dmg_sha256}"
 
       - name: Upload notarized DMG
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: cotabby-dmg-notarized
+          name: scribe-dmg-notarized
           path: build/${{ env.DMG_NAME }}
           retention-days: 1
 
@@ -645,9 +611,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # 3. PUBLISH
   # Downloads the stapled DMG, Sparkle-signs the appcast, creates the GitHub
-  # Release, and deploys the appcast to Pages. Only runs when publish=true.
-  # Separated so a Pages deploy failure or appcast signing hiccup doesn't
-  # require a full rebuild + re-notarization.
+  # Release, and deploys the appcast to Pages.
   # ---------------------------------------------------------------------------
   publish:
     name: Sign appcast, create release, and deploy Pages
@@ -662,6 +626,9 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy-pages.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: scribe
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -674,8 +641,8 @@ jobs:
       - name: Download notarized DMG
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: cotabby-dmg-notarized
-          path: build
+          name: scribe-dmg-notarized
+          path: scribe/build
 
       - name: Download Sparkle tools
         id: sparkle-tools
@@ -698,7 +665,6 @@ jobs:
           sign_update="${sparkle_dir}/bin/sign_update"
           if [[ ! -x "${sign_update}" ]]; then
             echo "sign_update tool not found in Sparkle ${SPARKLE_VERSION} archive." >&2
-            ls -la "${sparkle_dir}/bin/" >&2 || true
             exit 1
           fi
 
@@ -736,9 +702,6 @@ jobs:
             --output "build/appcast.xml" \
             --sign-update-tool "${SIGN_UPDATE_TOOL}" \
             --ed-key-file "${SPARKLE_KEY_FILE}"
-          # Release-notes base URL is intentionally omitted: the script's
-          # DEFAULT_RELEASE_NOTES_BASE_URL is the single source of truth. Pass
-          # --release-notes-base-url here only to override for a fork/staging host.
 
           grep -q 'sparkle:edSignature="' build/appcast.xml
           grep -q 'length="' build/appcast.xml
@@ -770,8 +733,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Prereleases must not become "Latest" on the GitHub release page —
-          # otherwise beta DMGs get surfaced to users browsing the repo.
           release_flags=()
           if [[ "${IS_PRERELEASE}" == "true" ]]; then
             release_flags=(--prerelease)
@@ -780,7 +741,7 @@ jobs:
           fi
 
           gh release create "${RELEASE_TAG}" "build/${DMG_NAME}" \
-            --title "Cotabby ${RELEASE_VERSION}" \
+            --title "Scribe ${RELEASE_VERSION}" \
             --generate-notes \
             "${release_flags[@]}"
 
@@ -809,9 +770,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p build/pages/Cotabby
+          mkdir -p build/pages
           cp build/appcast.xml build/pages/appcast.xml
-          cp build/appcast.xml build/pages/Cotabby/appcast.xml
           printf '%s\n' "${PAGES_CUSTOM_DOMAIN}" > build/pages/CNAME
 
       - name: Configure GitHub Pages
@@ -820,7 +780,7 @@ jobs:
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: build/pages
+          path: scribe/build/pages
 
       - name: Deploy GitHub Pages
         id: deploy-pages
@@ -832,47 +792,6 @@ jobs:
         with:
           name: release-artifacts
           path: |
-            build/${{ env.DMG_NAME }}
-            build/appcast.xml
+            scribe/build/${{ env.DMG_NAME }}
+            scribe/build/appcast.xml
           if-no-files-found: ignore
-
-  # ---------------------------------------------------------------------------
-  # 4. UPDATE HOMEBREW CASK
-  # Tell the Homebrew tap to point at the DMG this run just published. The
-  # tap's own update-cask.yml workflow listens for this repository_dispatch
-  # and rewrites Casks/cotabby.rb from the payload, so the cask-editing logic
-  # stays in the tap. Runs only after a real publish so dry-run validation
-  # builds never bump the cask.
-  # ---------------------------------------------------------------------------
-  update-homebrew-cask:
-    name: Update Homebrew cask
-    needs: [build, notarize, publish]
-    if: needs.build.outputs.publish == 'true'
-    runs-on: ubuntu-latest
-    permissions: {}
-    steps:
-      - name: Dispatch cask update to the tap
-        env:
-          # PAT with contents:write on FuJacob/homebrew-cotabby — the built-in
-          # GITHUB_TOKEN cannot reach another repository.
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          VERSION: ${{ needs.build.outputs.release_version }}
-          DMG_SHA256: ${{ needs.notarize.outputs.dmg_sha256 }}
-        run: |
-          set -euo pipefail
-
-          if [[ -z "${DMG_SHA256}" ]]; then
-            echo "The notarize job did not produce a DMG checksum." >&2
-            exit 1
-          fi
-
-          # version + sha256 are the client_payload contract expected by
-          # FuJacob/homebrew-cotabby's update-cask.yml. jq builds the body so the
-          # values are JSON-escaped instead of string-spliced into the request.
-          jq -nc \
-            --arg version "${VERSION}" \
-            --arg sha256 "${DMG_SHA256}" \
-            '{event_type: "update-cask", client_payload: {version: $version, sha256: $sha256}}' \
-            | gh api repos/FuJacob/homebrew-cotabby/dispatches --method POST --input -
-
-          echo "Dispatched update-cask to FuJacob/homebrew-cotabby for ${VERSION}."
