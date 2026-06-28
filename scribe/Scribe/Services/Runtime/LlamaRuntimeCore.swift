@@ -445,14 +445,16 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
             let suppressed = LlamaGenerationOutput(
                 text: "",
                 averageLogprob: averageLogprob,
-                suppressedByLowConfidence: true
+                suppressedByLowConfidence: true,
+                stoppedAtBudget: false
             )
             return (suppressed, engineCancelled)
         }
         let output = LlamaGenerationOutput(
             text: generatedText,
             averageLogprob: averageLogprob,
-            suppressedByLowConfidence: false
+            suppressedByLowConfidence: false,
+            stoppedAtBudget: stopReason == "budget_exhausted"
         )
         return (output, engineCancelled)
     }

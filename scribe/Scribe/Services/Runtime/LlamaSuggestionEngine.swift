@@ -119,6 +119,7 @@ final class LlamaSuggestionEngine {
             )
             let options = Self.makeGenerationOptions(for: request)
             let output: LlamaGenerationOutput
+            let precedingEndsAtWordBoundary = Self.precedingTextEndsAtWordBoundary(request.context.precedingText)
             if let onPartial {
                 output = try await runtimeManager.generate(
                     prompt: request.prompt,
@@ -132,6 +133,15 @@ final class LlamaSuggestionEngine {
                         Task { @MainActor in
                             let normalized = SuggestionTextNormalizer.normalizeDetailed(raw, for: request).text
                             guard !normalized.isEmpty else {
+                                return
+                            }
+                            // Skip streaming partials that end mid-word when the preceding text
+                            // ends at a word boundary (we're generating whole new words, not
+                            // completing an existing one). This prevents subword tokens like "compl"
+                            // from flashing in the ghost text before "ete" arrives on the next tick.
+                            // Mid-word completions (preceding text ends on a letter) pass through
+                            // unchanged — the partial IS the word fragment being completed.
+                            if precedingEndsAtWordBoundary, Self.endsAtIncompleteWord(normalized) {
                                 return
                             }
                             onPartial(SuggestionResult(
@@ -159,9 +169,17 @@ final class LlamaSuggestionEngine {
             // Streamed partials are pre-gate by nature: a completion the floor later withholds can
             // briefly paint and then clear, which is the same contract as any other final-result
             // suppression under streaming.
-            let normalization = output.suppressedByLowConfidence
+            var normalization = output.suppressedByLowConfidence
                 ? SuggestionNormalizationResult(text: "", suppression: .lowConfidence)
                 : SuggestionTextNormalizer.normalizeDetailed(rawSuggestion, for: request)
+            // When the model hit the token budget (not a natural stop), the trailing word may be
+            // incomplete. Trim it back to the last complete word boundary, but only when we're in
+            // a new-word context — mid-word completions are intentional fragments, not cutoffs.
+            if output.stoppedAtBudget, !normalization.text.isEmpty, precedingEndsAtWordBoundary,
+               Self.endsAtIncompleteWord(normalization.text) {
+                let trimmed = Self.trimIncompleteTrailingWord(normalization.text)
+                normalization = SuggestionNormalizationResult(text: trimmed, suppression: trimmed.isEmpty ? .normalizedToEmpty : nil)
+            }
             let normalizedSuggestion = normalization.text
             let latency = Date().timeIntervalSince(startTime)
             let rawChars = rawSuggestion.count
@@ -278,6 +296,30 @@ final class LlamaSuggestionEngine {
             confidenceFloor: resolvedConfidenceFloor(),
             stopAtArgmaxEOG: resolvedStopAtArgmaxEOG()
         )
+    }
+
+    /// True when the preceding text ends at a word boundary (whitespace or punctuation), meaning
+    /// the model is generating whole new words rather than completing an existing one.
+    static func precedingTextEndsAtWordBoundary(_ precedingText: String) -> Bool {
+        guard let last = precedingText.last else { return true }
+        return !last.isLetter && !last.isNumber
+    }
+
+    /// True when the text ends on a letter/number AND there is at least one space before that
+    /// run — indicating a multi-word output whose last word is likely a mid-budget cutoff.
+    /// Single-word outputs (no space) pass through unchanged: they may be valid short words.
+    static func endsAtIncompleteWord(_ text: String) -> Bool {
+        guard let last = text.last, last.isLetter || last.isNumber else { return false }
+        return text.contains(where: { $0.isWhitespace })
+    }
+
+    /// Trims the last space-delimited word from `text`, returning the remaining prefix
+    /// stripped of trailing whitespace. Returns empty when no space is found.
+    static func trimIncompleteTrailingWord(_ text: String) -> String {
+        guard let lastSpace = text.lastIndex(where: { $0.isWhitespace }) else {
+            return ""
+        }
+        return String(text[...lastSpace]).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

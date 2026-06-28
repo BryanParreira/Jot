@@ -220,9 +220,13 @@ struct LlamaGenerationOutput: Equatable, Sendable {
     let averageLogprob: Double?
     /// True when the completion was withheld because `averageLogprob` fell below the floor.
     let suppressedByLowConfidence: Bool
+    /// True when generation stopped because the token budget was exhausted rather than because
+    /// the model emitted a natural stop (EOS, argmax-EOG, sentence boundary). The trailing word
+    /// may be incomplete in this case and should be trimmed before display.
+    let stoppedAtBudget: Bool
 
     static func text(_ text: String) -> LlamaGenerationOutput {
-        LlamaGenerationOutput(text: text, averageLogprob: nil, suppressedByLowConfidence: false)
+        LlamaGenerationOutput(text: text, averageLogprob: nil, suppressedByLowConfidence: false, stoppedAtBudget: false)
     }
 }
 
