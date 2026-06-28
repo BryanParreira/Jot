@@ -1,5 +1,5 @@
 <p align="center">
-  <img height="120" alt="Scribe logo" src="scribe/Scribe/Assets.xcassets/ScribeLogo.imageset/ScribeLogo.png" />
+  <img height="120" alt="Scribe logo" src="scribe/Scribe/Assets.xcassets/AppIcon.appiconset/256.png" />
 </p>
 
 <h1 align="center">Scribe</h1>
