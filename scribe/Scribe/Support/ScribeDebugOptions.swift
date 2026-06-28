@@ -51,7 +51,7 @@ nonisolated enum ScribeDebugOptions {
             return
         }
 
-        JotLogger.debug.debug("\(message())")
+        ScribeLogger.debug.debug("\(message())")
     }
 }
 
@@ -61,7 +61,7 @@ nonisolated enum ScribeDebugOptions {
 /// subsystem as a filterable column. When the `-scribe-debug` launch argument is set we
 /// additionally fan out to `FileLogHandler`, which writes JSONL to
 /// `~/Library/Logs/Scribe/scribe.jsonl` for AI-assisted debugging without copy-paste.
-nonisolated enum JotLogger {
+nonisolated enum ScribeLogger {
     /// Reserved label that routes only to the dedicated LLM I/O sink, never to OSLog or the main
     /// JSONL file. Kept out of OSLog because full prompts/completions can be many KB per request
     /// and would dominate Console.app; kept out of `scribe.jsonl` because it would drown the

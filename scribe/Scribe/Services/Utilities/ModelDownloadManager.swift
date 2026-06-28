@@ -155,17 +155,17 @@ final class ModelDownloadManager: ObservableObject {
 
     func download(_ model: DownloadableRuntimeModel) {
         guard downloadTasks[model.filename] == nil else {
-            JotLogger.models.debug("Download already in progress for \(model.filename)")
+            ScribeLogger.models.debug("Download already in progress for \(model.filename)")
             return
         }
 
         if isInstalled(model: model) {
-            JotLogger.models.debug("Model \(model.filename) already installed, skipping download")
+            ScribeLogger.models.debug("Model \(model.filename) already installed, skipping download")
             modelStates[model.filename] = .downloaded
             return
         }
 
-        JotLogger.models.info("Starting download for \(model.filename)")
+        ScribeLogger.models.info("Starting download for \(model.filename)")
         modelStates[model.filename] = .downloading(progress: 0)
         let task = Task { [weak self] in
             guard let self else {
@@ -202,7 +202,7 @@ final class ModelDownloadManager: ObservableObject {
         do {
             try ensureRuntimeDirectoryExists()
         } catch {
-            JotLogger.models.error(
+            ScribeLogger.models.error(
                 "Failed to ensure runtime directory before opening: \(error.localizedDescription)",
                 metadata: ["directory": .string(runtimeDirectoryURL.path)]
             )
@@ -226,7 +226,7 @@ final class ModelDownloadManager: ObservableObject {
         do {
             try ensureRuntimeDirectoryExists()
         } catch {
-            JotLogger.models.error(
+            ScribeLogger.models.error(
                 "Failed to ensure runtime directory before import: \(error.localizedDescription)",
                 metadata: ["directory": .string(runtimeDirectoryURL.path)]
             )
@@ -246,7 +246,7 @@ final class ModelDownloadManager: ObservableObject {
                 do {
                     try fileManager.copyItem(at: sourceURL, to: destinationURL)
                 } catch {
-                    JotLogger.models.error(
+                    ScribeLogger.models.error(
                         "Failed to import \(sourceURL.lastPathComponent): \(error.localizedDescription)",
                         metadata: [
                             "source": .string(sourceURL.path),
@@ -280,7 +280,7 @@ final class ModelDownloadManager: ObservableObject {
             refreshModelStates()
             onModelDirectoryChanged?()
         } catch {
-            JotLogger.models.error("Failed to delete model \(filename): \(error.localizedDescription)")
+            ScribeLogger.models.error("Failed to delete model \(filename): \(error.localizedDescription)")
         }
     }
 
@@ -292,7 +292,7 @@ final class ModelDownloadManager: ObservableObject {
         do {
             try await performSingleFileDownload(model, url: model.downloadURL)
 
-            JotLogger.models.info("Download complete for \(model.filename)")
+            ScribeLogger.models.info("Download complete for \(model.filename)")
             // Keep the discovered-filename cache in step with the new file on disk so an immediate
             // re-`download(_:)` of the same model is recognized as installed instead of re-fetched.
             recomputeInstalledModelFilenames()
@@ -300,10 +300,10 @@ final class ModelDownloadManager: ObservableObject {
             onModelDirectoryChanged?()
         } catch {
             if DownloadOutcomeClassifier.isUserCancellation(error) {
-                JotLogger.models.info("Download cancelled by user for \(model.filename)")
+                ScribeLogger.models.info("Download cancelled by user for \(model.filename)")
                 modelStates[model.filename] = isInstalled(model: model) ? .downloaded : .idle
             } else {
-                JotLogger.models.error("Download failed for \(model.filename): \(error.localizedDescription)")
+                ScribeLogger.models.error("Download failed for \(model.filename): \(error.localizedDescription)")
                 modelStates[model.filename] = .failed(error.localizedDescription)
             }
         }

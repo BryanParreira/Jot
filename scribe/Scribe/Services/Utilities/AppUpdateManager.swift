@@ -17,7 +17,7 @@ final class AppUpdateManager {
 
     private var isStarted = false
 
-    private static let debugCheckForUpdatesOnLaunchArgument = "-Jot-check-for-updates-on-launch"
+    private static let debugCheckForUpdatesOnLaunchArgument = "-Scribe-check-for-updates-on-launch"
     private static let publicKeyPlaceholder = "REPLACE_WITH_GENERATED_SPARKLE_PUBLIC_ED_KEY"
 
     init() {
@@ -124,6 +124,6 @@ final class AppUpdateManager {
     }
 
     private func log(_ message: String) {
-        JotLogger.updates.info("\(message)")
+        ScribeLogger.updates.info("\(message)")
     }
 }

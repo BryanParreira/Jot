@@ -75,7 +75,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
             shutdown()
         }
 
-        JotLogger.runtime.info(
+        ScribeLogger.runtime.info(
             "Loading model",
             metadata: [
                 "model_path": .string(resolvedRuntime.modelFileURL.path),
@@ -92,7 +92,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
         )
 
         guard status == .ok else {
-            JotLogger.runtime.error(
+            ScribeLogger.runtime.error(
                 "Model load failed",
                 metadata: [
                     "model": .string(resolvedRuntime.modelDisplayName),
@@ -115,7 +115,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
         self.preparedRuntime = result
         loggedTrimRejectionForCurrentModel = false
         modelRejectsPartialTrims = false
-        JotLogger.runtime.info(
+        ScribeLogger.runtime.info(
             "Model loaded",
             metadata: [
                 "model": .string(resolvedRuntime.modelDisplayName),
@@ -238,7 +238,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
         // first real request pays anyway. The flag is learned from the first rejected trim
         // after model load; until then one speculative prefill may still run and be discarded.
         guard !modelRejectsPartialTrims else {
-            JotLogger.runtime.debug("Prefill skipped: the loaded model rejects partial KV trims")
+            ScribeLogger.runtime.debug("Prefill skipped: the loaded model rejects partial KV trims")
             return
         }
 
@@ -313,13 +313,13 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
         let promptBytes = Array(prompt.utf8)
         let allPromptTokens = tokenize(prompt)
         guard !allPromptTokens.isEmpty else {
-            JotLogger.runtime.error(
+            ScribeLogger.runtime.error(
                 "Tokenization returned no prompt tokens",
                 metadata: ["prompt_bytes": .stringConvertible(promptBytes.count)]
             )
             throw LlamaRuntimeError.generationFailed("Tokenization returned no prompt tokens.")
         }
-        JotLogger.runtime.debug(
+        ScribeLogger.runtime.debug(
             "Decode start",
             metadata: [
                 "kind": .string(kind),
@@ -426,7 +426,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
             }
         }
 
-        JotLogger.runtime.debug(
+        ScribeLogger.runtime.debug(
             "Decode end",
             metadata: [
                 "kind": .string("generate"),
@@ -474,7 +474,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
             floor: options.confidenceFloor
         )
         if suppress {
-            JotLogger.runtime.debug(
+            ScribeLogger.runtime.debug(
                 "Suppressed low-confidence completion",
                 metadata: [
                     "tokens_generated": .stringConvertible(tokensGenerated),
@@ -493,7 +493,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
         defer { autocompleteLock.unlock() }
 
         if autocompleteSequenceID >= 0 {
-            JotLogger.runtime.debug(
+            ScribeLogger.runtime.debug(
                 "Prompt cache reset",
                 metadata: ["sequence_id": .stringConvertible(autocompleteSequenceID)]
             )
@@ -513,7 +513,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
     /// with `engine.unloadModel()` so the caller (typically `applicationWillTerminate`) does not
     /// hang the main thread on a runaway generation. A nil timeout waits indefinitely.
     func shutdown(timeoutSeconds: TimeInterval? = nil) {
-        JotLogger.runtime.info(
+        ScribeLogger.runtime.info(
             "Runtime shutdown requested",
             metadata: [
                 "timeout_seconds": .string(timeoutSeconds.map { String(format: "%.1f", $0) } ?? "unbounded")
@@ -537,7 +537,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
         resetPromptCache()
         engine.unloadModel()
         preparedRuntime = nil
-        JotLogger.runtime.info("Runtime shutdown complete")
+        ScribeLogger.runtime.info("Runtime shutdown complete")
 
         lifecycleCondition.lock()
         isShuttingDown = false
@@ -614,7 +614,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
                                 return try buildFreshSequence(promptTokens: promptTokens, options: options)
                             }
                         }
-                        JotLogger.runtime.debug(
+                        ScribeLogger.runtime.debug(
                             "KV prefix reused",
                             metadata: [
                                 "reused_tokens": .stringConvertible(reusableTokenCount),
@@ -680,7 +680,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
         modelRejectsPartialTrims = true
         if !loggedTrimRejectionForCurrentModel {
             loggedTrimRejectionForCurrentModel = true
-            JotLogger.runtime.info(
+            ScribeLogger.runtime.info(
                 "KV prefix reuse unavailable: the engine rejected a partial trim, so every request re-decodes its full prompt",
                 metadata: [
                     "model": .string(preparedRuntime?.resolvedRuntime.modelDisplayName ?? "unknown"),
@@ -690,7 +690,7 @@ nonisolated final class LlamaRuntimeCore: @unchecked Sendable {
             return
         }
 
-        JotLogger.runtime.debug(
+        ScribeLogger.runtime.debug(
             "KV prefix trim rejected; rebuilding sequence",
             metadata: ["rejected_reusable_tokens": .stringConvertible(reusableTokenCount)]
         )

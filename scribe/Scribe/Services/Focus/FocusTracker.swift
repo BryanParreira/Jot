@@ -94,7 +94,7 @@ final class FocusTracker {
             return
         }
 
-        JotLogger.focus.info("Focus polling started at \(Int(self.pollInterval * 1000))ms interval")
+        ScribeLogger.focus.info("Focus polling started at \(Int(self.pollInterval * 1000))ms interval")
         // Capture once immediately (this also resets idle backoff), then arm the timer at the
         // resulting effective interval.
         refreshNow()
@@ -103,7 +103,7 @@ final class FocusTracker {
 
     /// Stops polling while leaving the most recent snapshot available to callers.
     func stop() {
-        JotLogger.focus.info("Focus polling stopped")
+        ScribeLogger.focus.info("Focus polling stopped")
         timer?.invalidate()
         timer = nil
         scheduledInterval = nil
@@ -147,7 +147,7 @@ final class FocusTracker {
             return
         }
 
-        JotLogger.focus.info("Focus poll interval changed to \(Int(interval * 1000))ms")
+        ScribeLogger.focus.info("Focus poll interval changed to \(Int(interval * 1000))ms")
         pollInterval = interval
 
         // Only restart if a timer is already running.
@@ -298,7 +298,7 @@ final class FocusTracker {
             return inactiveCapture(
                 applicationName: application.localizedName ?? "Scribe",
                 bundleIdentifier: application.bundleIdentifier,
-                capability: .blocked("Jot is focused.")
+                capability: .blocked("Scribe is focused.")
             )
         }
 
@@ -312,7 +312,7 @@ final class FocusTracker {
             return inactiveCapture(
                 applicationName: application.localizedName ?? "?",
                 bundleIdentifier: application.bundleIdentifier,
-                capability: .blocked("Jot is disabled for this app.")
+                capability: .blocked("Scribe is disabled for this app.")
             )
         }
         noteCaptureResumedIfNeeded()
@@ -399,7 +399,7 @@ final class FocusTracker {
         let signature = "\(application.processIdentifier):\(source)"
         guard signature != lastChromeProbeSignature else { return }
         lastChromeProbeSignature = signature
-        JotLogger.focus.debug(
+        ScribeLogger.focus.debug(
             "CHROME-FOCUS-PROBE resolved via \(source) for \(application.localizedName ?? "?")")
     }
 
@@ -420,7 +420,7 @@ final class FocusTracker {
         let stats = "no-cache"
         let line = "Resolve timing: app=\(application.localizedName ?? "?") "
             + "resolveMs=\(String(format: "%.1f", millis)) caret=\(source) cache=[\(stats)]"
-        JotLogger.focus.debug("\(line)")
+        ScribeLogger.focus.debug("\(line)")
     }
 
     /// Emits one log line per suppression transition. The gate is consulted on every poll tick, so
@@ -434,7 +434,7 @@ final class FocusTracker {
         lastSuppressedBundleIdentifier = bundleIdentifier
         let name = application.localizedName ?? "?"
         let id = bundleIdentifier ?? "no bundle id"
-        JotLogger.focus.info("Focus capture suppressed for \(name) (\(id))")
+        ScribeLogger.focus.info("Focus capture suppressed for \(name) (\(id))")
     }
 
     private func noteCaptureResumedIfNeeded() {
@@ -442,7 +442,7 @@ final class FocusTracker {
             return
         }
         lastSuppressedBundleIdentifier = nil
-        JotLogger.focus.info("Focus capture resumed")
+        ScribeLogger.focus.info("Focus capture resumed")
     }
 
     private func inactiveCapture(

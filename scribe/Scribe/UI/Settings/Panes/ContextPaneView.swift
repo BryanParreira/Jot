@@ -139,7 +139,7 @@ struct ContextPaneView: View {
                     "Sent on every suggestion as reference material, not as instructions."
                 )
                 bulletLine(
-                    "Subordinate to Jot's base autocomplete rules, so it cannot override " +
+                    "Subordinate to Scribe's base autocomplete rules, so it cannot override " +
                         "core behavior."
                 )
                 bulletLine(

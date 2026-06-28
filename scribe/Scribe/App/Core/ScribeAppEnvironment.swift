@@ -10,7 +10,7 @@ import Logging
 /// The important architectural idea is that creation happens in one place, while usage happens
 /// elsewhere. That keeps lifecycle ownership easy to follow.
 @MainActor
-final class JotAppEnvironment {
+final class ScribeAppEnvironment {
     let permissionManager: PermissionManager
     let runtimeModel: RuntimeBootstrapModel
     let modelDownloadManager: ModelDownloadManager
@@ -42,7 +42,7 @@ final class JotAppEnvironment {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
-        JotLogger.app.info("Building dependency graph")
+        ScribeLogger.app.info("Building dependency graph")
         let configuration = SuggestionConfiguration.standard
         let permissionManager = PermissionManager()
         let permissionGuidanceController = PermissionGuidanceController(
@@ -142,18 +142,18 @@ final class JotAppEnvironment {
             foundationModelEngine = FoundationModelSuggestionEngine(
                 availabilityService: foundationModelAvailabilityService
             )
-            JotLogger.app.info("Foundation model engine available")
+            ScribeLogger.app.info("Foundation model engine available")
         } else {
             foundationModelEngine = UnavailableSuggestionEngine(
                 message: foundationModelAvailabilityService.userVisibleMessage
             )
-            JotLogger.app.info("Foundation model engine unavailable (macOS version)")
+            ScribeLogger.app.info("Foundation model engine unavailable (macOS version)")
         }
         #else
         foundationModelEngine = UnavailableSuggestionEngine(
             message: foundationModelAvailabilityService.userVisibleMessage
         )
-        JotLogger.app.info("Foundation model engine unavailable (SDK)")
+        ScribeLogger.app.info("Foundation model engine unavailable (SDK)")
         #endif
 
         let suggestionEngine: any SuggestionGenerating = SuggestionEngineRouter(

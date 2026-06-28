@@ -137,7 +137,7 @@ nonisolated final class LLMIOFileWriter: @unchecked Sendable {
 
 /// swift-log handler that mirrors `FileLogHandler` but writes to the separate LLM I/O file. The
 /// caller is expected to pass the full prompt and completion text via `Logger.Metadata`; the
-/// handler does not inspect log levels because every event routed to `JotLogger.llmIO` is
+/// handler does not inspect log levels because every event routed to `ScribeLogger.llmIO` is
 /// intentional.
 struct LLMIOFileHandler: LogHandler {
     var metadata: Logging.Logger.Metadata = [:]

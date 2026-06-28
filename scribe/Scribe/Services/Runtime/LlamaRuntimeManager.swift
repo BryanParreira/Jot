@@ -53,14 +53,14 @@ final class LlamaRuntimeManager: ObservableObject {
     func refreshAvailableModels() {
         availableModels = runtimeLocator.availableModels(configuration: configuration)
         selectedModelFilename = normalizedModelFilename(selectedModelFilename)
-        JotLogger.runtime.info("Discovered \(self.availableModels.count) model(s)")
+        ScribeLogger.runtime.info("Discovered \(self.availableModels.count) model(s)")
     }
 
     /// Records which discovered model should be loaded when preparation starts.
     /// This keeps persisted UI state separate from the runtime loading lifecycle.
     func configureSelectedModel(filename: String?) {
         selectedModelFilename = normalizedModelFilename(filename)
-        JotLogger.runtime.info("Configured selected model: \(self.selectedModelFilename ?? "none")")
+        ScribeLogger.runtime.info("Configured selected model: \(self.selectedModelFilename ?? "none")")
     }
 
     /// Ensures the selected local model is resolved and prepared before any generation requests run.
@@ -71,7 +71,7 @@ final class LlamaRuntimeManager: ObservableObject {
     /// Reloads the runtime in place with a newly selected local model.
     /// The manager instance stays alive; only the loaded model changes.
     func selectModel(filename: String) async throws {
-        JotLogger.runtime.info("Selecting model: \(filename)")
+        ScribeLogger.runtime.info("Selecting model: \(filename)")
         guard let normalizedFilename = normalizedModelFilename(filename) else {
             let error = LlamaRuntimeError.unavailable(
                 "The selected model \(filename) is unavailable.")
@@ -153,14 +153,14 @@ final class LlamaRuntimeManager: ObservableObject {
                 core.abortInFlightGeneration()
             }
         } catch is CancellationError {
-            JotLogger.runtime.debug("Generation cancelled")
+            ScribeLogger.runtime.debug("Generation cancelled")
             throw LlamaRuntimeError.cancelled
         } catch let error as LlamaRuntimeError {
-            JotLogger.runtime.error("Generation runtime error: \(error.localizedDescription)")
+            ScribeLogger.runtime.error("Generation runtime error: \(error.localizedDescription)")
             diagnostics.lastError = error.localizedDescription
             throw error
         } catch {
-            JotLogger.runtime.error("Generation failed: \(error.localizedDescription)")
+            ScribeLogger.runtime.error("Generation failed: \(error.localizedDescription)")
             let runtimeError = LlamaRuntimeError.generationFailed(error.localizedDescription)
             diagnostics.lastError = runtimeError.localizedDescription
             throw runtimeError
@@ -205,7 +205,7 @@ final class LlamaRuntimeManager: ObservableObject {
     /// Cancels any retained prepared runtime and releases backend resources.
     /// Shutdown runs on a detached thread so it does not block the main actor.
     func stop() {
-        JotLogger.runtime.info("Runtime stop requested")
+        ScribeLogger.runtime.info("Runtime stop requested")
         prepareForStop()
         Task.detached { [core] in
             core.shutdown()
@@ -250,7 +250,7 @@ final class LlamaRuntimeManager: ObservableObject {
 
         if let cachedRuntime,
             cachedRuntime.resolvedRuntime.modelFileURL == resolvedRuntime.modelFileURL {
-            JotLogger.runtime.trace("Using cached runtime for \(requestedModelFilename)")
+            ScribeLogger.runtime.trace("Using cached runtime for \(requestedModelFilename)")
             return cachedRuntime
         }
 
@@ -258,11 +258,11 @@ final class LlamaRuntimeManager: ObservableObject {
         // replace the task if the requested model changed while startup was already in flight.
         if let startupTask {
             if startupModelFilename == requestedModelFilename {
-                JotLogger.runtime.debug("Reusing in-flight startup for \(requestedModelFilename)")
+                ScribeLogger.runtime.debug("Reusing in-flight startup for \(requestedModelFilename)")
                 return try await awaitPreparedRuntime(startupTask)
             }
 
-            JotLogger.runtime.info("Model changed to \(requestedModelFilename), cancelling previous startup")
+            ScribeLogger.runtime.info("Model changed to \(requestedModelFilename), cancelling previous startup")
             startupTask.cancel()
             self.startupTask = nil
             startupModelFilename = nil
@@ -282,7 +282,7 @@ final class LlamaRuntimeManager: ObservableObject {
         }
         self.startupTask = startupTask
         startupModelFilename = requestedModelFilename
-        JotLogger.runtime.info("Loading \(resolvedRuntime.modelDisplayName) into memory")
+        ScribeLogger.runtime.info("Loading \(resolvedRuntime.modelDisplayName) into memory")
         state = .loading("Loading \(resolvedRuntime.modelDisplayName) into memory.")
 
         return try await awaitPreparedRuntime(startupTask)
@@ -361,7 +361,7 @@ final class LlamaRuntimeManager: ObservableObject {
     private func apply(_ preparedRuntime: PreparedLlamaRuntime) {
         let model = preparedRuntime.resolvedRuntime.modelDisplayName
         let ctx = preparedRuntime.contextWindowTokens
-        JotLogger.runtime.info(
+        ScribeLogger.runtime.info(
             "Runtime ready: model=\(model) ctx=\(ctx) threads=\(preparedRuntime.threadCount) gpu=\(preparedRuntime.gpuLayerCount)"
         )
         diagnostics.runtimeDirectoryPath = preparedRuntime.resolvedRuntime.runtimeDirectoryURL.path

@@ -73,7 +73,7 @@ enum ScribePermissionKind: String, CaseIterable, Identifiable, Sendable {
     var guidanceHint: String {
         switch guidanceStyle {
         case .guidedOverlay:
-            "Jot will open System Settings and show a drag helper anchored to the correct list."
+            "Scribe will open System Settings and show a drag helper anchored to the correct list."
         case .settingsOnly:
             "Opens the matching System Settings pane so you can grant it manually."
         }

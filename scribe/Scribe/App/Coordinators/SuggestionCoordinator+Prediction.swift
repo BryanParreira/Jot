@@ -556,7 +556,7 @@ extension SuggestionCoordinator {
         focusModel.invalidateTransientCaretCaches()
         cancelPredictionWork()
         clearSuggestion(clearDiagnostics: false)
-        hideOverlay(reason: "Overlay hidden because Jot automatically fixed a typo.")
+        hideOverlay(reason: "Overlay hidden because Scribe automatically fixed a typo.")
         latestAcceptanceAction = "Automatically corrected \"\(typoWord)\" to \"\(correctedWord)\"."
         state = .idle
         logStage(
@@ -1011,7 +1011,7 @@ extension SuggestionCoordinator {
             return
         }
 
-        JotLogger.suggestion.debug("Predictions disabled: \(reason)")
+        ScribeLogger.suggestion.debug("Predictions disabled: \(reason)")
         cancelPredictionWork()
         resetCachedGenerationContext()
         visualContextCoordinator.cancel(resetState: true)

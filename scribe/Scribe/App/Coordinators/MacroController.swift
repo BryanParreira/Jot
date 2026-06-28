@@ -164,7 +164,7 @@ final class MacroController {
             // resolved yet (AX is eventually consistent right after a focus change). Aborting here is
             // what looks to the user like "the macro preview sometimes does nothing"; log it so a
             // first-keystroke failure is distinguishable from a commit-path failure.
-            JotLogger.suggestion.debug("macro capture aborted at open: no triggerable focus context")
+            ScribeLogger.suggestion.debug("macro capture aborted at open: no triggerable focus context")
             machine.reset()
             return
         }
@@ -204,7 +204,7 @@ final class MacroController {
         }
         let deleteCount = 1 + currentQuery.utf16.count   // "/" + query
         let insertion = result.insertionText
-        JotLogger.suggestion.debug("macro commit deleteUTF16=\(deleteCount) query=\"\(currentQuery)\"")
+        ScribeLogger.suggestion.debug("macro commit deleteUTF16=\(deleteCount) query=\"\(currentQuery)\"")
         teardownCapture()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }

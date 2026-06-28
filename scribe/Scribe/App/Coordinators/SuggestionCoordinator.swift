@@ -51,7 +51,7 @@ final class SuggestionCoordinator: ObservableObject {
     let overlayPresenter: SuggestionOverlayPresenter
     let logger: SuggestionDebugLogger
     /// Drives the typo gate before each prediction. Owned at app scope (constructed once in
-    /// `JotAppEnvironment`) so the underlying `NSSpellChecker` document tag persists across the
+    /// `ScribeAppEnvironment`) so the underlying `NSSpellChecker` document tag persists across the
     /// coordinator's lifetime instead of churning per keystroke.
     let spellChecker: CurrentWordSpellChecker
     /// Always-on quality counters (shown / suppressed / accepted). The router counts generation

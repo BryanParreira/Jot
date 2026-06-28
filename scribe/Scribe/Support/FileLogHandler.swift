@@ -7,7 +7,7 @@ import Logging
 /// directly without copy-pasting from Console.app.
 ///
 /// The handler is only installed when `-cotabby-debug` is passed at launch (see
-/// `JotLogger.bootstrap`). When the file grows past `sizeCapBytes` it is rotated: the
+/// `ScribeLogger.bootstrap`). When the file grows past `sizeCapBytes` it is rotated: the
 /// current file becomes `cotabby.jsonl.1` (overwriting any prior rotation) and a fresh empty
 /// `cotabby.jsonl` is opened. The previous truncate-to-zero behavior threw away the *most
 /// recent* history at exactly the moment a debugger most needed it; one-step rotation keeps

@@ -118,7 +118,7 @@ struct FocusSnapshotResolver {
         )
 
         guard let resolvedCandidate = candidateResolution.resolvedCandidate else {
-            JotLogger.focus.trace("Focus unsupported in \(applicationName): \(resolution.unsupportedReason)")
+            ScribeLogger.focus.trace("Focus unsupported in \(applicationName): \(resolution.unsupportedReason)")
             return FocusSnapshot(
                 applicationName: applicationName,
                 bundleIdentifier: bundleIdentifier,
@@ -769,7 +769,7 @@ struct FocusSnapshotResolver {
             let textLength = (markerSelection.text as NSString).length
             let location = markerSelection.selection.location
             let length = markerSelection.selection.length
-            JotLogger.focus.trace(
+            ScribeLogger.focus.trace(
                 "CHROME-CONTENTEDITABLE synthesized selection loc=\(location) len=\(length) textLen=\(textLength)")
         }
 

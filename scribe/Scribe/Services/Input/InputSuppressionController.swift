@@ -40,7 +40,7 @@ final class InputSuppressionController {
         }
         remainingKeyDownSuppressions += max(expectedKeyDownCount, 0)
         suppressionExpiry = Date().addingTimeInterval(1.0)
-        JotLogger.app.trace("Suppression armed for \(expectedKeyDownCount) synthetic key event(s)")
+        ScribeLogger.app.trace("Suppression armed for \(expectedKeyDownCount) synthetic key event(s)")
     }
 
     /// Consumes one pending suppression token if the current event still falls inside the expiry window.

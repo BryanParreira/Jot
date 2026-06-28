@@ -64,16 +64,16 @@ extension EmojiCatalog {
     /// so a packaging mistake disables the picker gracefully instead of taking down the app.
     static func bundled(in bundle: Bundle = .main) -> EmojiCatalog {
         guard let url = resourceURL(in: bundle) else {
-            JotLogger.app.error("Emoji catalog resource emoji.json not found in bundle")
+            ScribeLogger.app.error("Emoji catalog resource emoji.json not found in bundle")
             return EmojiCatalog(entries: [])
         }
         do {
             let data = try Data(contentsOf: url)
             let entries = try JSONDecoder().decode([EmojiEntry].self, from: data)
-            JotLogger.app.info("Emoji catalog loaded \(entries.count) entries")
+            ScribeLogger.app.info("Emoji catalog loaded \(entries.count) entries")
             return EmojiCatalog(entries: entries)
         } catch {
-            JotLogger.app.error("Emoji catalog failed to decode: \(error.localizedDescription)")
+            ScribeLogger.app.error("Emoji catalog failed to decode: \(error.localizedDescription)")
             return EmojiCatalog(entries: [])
         }
     }

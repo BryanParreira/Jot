@@ -289,7 +289,7 @@ extension WelcomeView {
                     .onboardingReveal(0)
 
                 VStack(spacing: 8) {
-                    Text("Welcome to Jot")
+                    Text("Welcome to Scribe")
                         .font(.system(size: 30, weight: .bold, design: .rounded))
 
                     Text("Ghost-text autocomplete in every app,\ngenerated entirely on your Mac.")
@@ -380,7 +380,7 @@ extension WelcomeView {
             VStack(spacing: 12) {
                 doneStepModelStatus
 
-                WelcomeButton(title: "Start Using Jot") {
+                WelcomeButton(title: "Start Using Scribe") {
                     onDismiss()
                 }
             }

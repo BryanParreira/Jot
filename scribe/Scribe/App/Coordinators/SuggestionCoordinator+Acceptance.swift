@@ -28,7 +28,7 @@ extension SuggestionCoordinator {
 
         guard permissionManager.inputMonitoringGranted else {
             return passTabThrough(
-                reason: "Input Monitoring permission is required before Jot can accept suggestions."
+                reason: "Input Monitoring permission is required before Scribe can accept suggestions."
             )
         }
 
@@ -567,7 +567,7 @@ extension SuggestionCoordinator {
         reason: String,
         clearDiagnostics: Bool = true
     ) {
-        JotLogger.suggestion.debug("Invalidating active suggestion: \(reason)")
+        ScribeLogger.suggestion.debug("Invalidating active suggestion: \(reason)")
         // The dying session is exactly what a backspace-rollback wants restored a moment later;
         // remember it (string-only) before the state is torn down.
         if let session = interactionState.activeSession, !session.kind.isCorrection {
@@ -939,7 +939,7 @@ extension SuggestionCoordinator {
             if let skipReason = anchor.skipReason {
                 metadata["repair_outcome"] = .string("skipped")
                 metadata["skip_reason"] = .string(skipReason.rawValue)
-                JotLogger.suggestion.debug(
+                ScribeLogger.suggestion.debug(
                     "Kept the AX caret; its geometry source outranks the layout estimate.",
                     metadata: metadata
                 )
@@ -958,7 +958,7 @@ extension SuggestionCoordinator {
             metadata["used_observed_line_height"] = .stringConvertible(estimate.usedObservedLineHeight)
             metadata["used_observed_content_edges"] = .stringConvertible(estimate.usedObservedContentEdges)
             metadata["layout_font_point_size"] = .stringConvertible(Double(estimate.layoutFontPointSize))
-            JotLogger.suggestion.debug(
+            ScribeLogger.suggestion.debug(
                 substituted
                     ? "Replaced the AX caret with a text-layout estimate."
                     : "Kept the AX caret over the text-layout estimate.",
@@ -967,7 +967,7 @@ extension SuggestionCoordinator {
         case .rejected(let reason):
             metadata["repair_outcome"] = .string("rejected")
             metadata["reject_reason"] = .string(reason.rawValue)
-            JotLogger.suggestion.debug(
+            ScribeLogger.suggestion.debug(
                 "Kept the AX caret; the text-layout estimate was rejected.",
                 metadata: metadata
             )
@@ -1008,7 +1008,7 @@ extension SuggestionCoordinator {
         // carry a placeholder so the field shape is stable for `jq`.
         // Level-gate before building the metadata dictionary: stages fire per keystroke, and at
         // the default `.info` floor the line is dropped anyway, so the allocations would be waste.
-        guard JotLogger.suggestion.logLevel <= .debug else {
+        guard ScribeLogger.suggestion.logLevel <= .debug else {
             return
         }
 
@@ -1020,6 +1020,6 @@ extension SuggestionCoordinator {
         if let generation {
             metadata["generation"] = .stringConvertible(generation)
         }
-        JotLogger.suggestion.debug(.init(stringLiteral: message), metadata: metadata)
+        ScribeLogger.suggestion.debug(.init(stringLiteral: message), metadata: metadata)
     }
 }

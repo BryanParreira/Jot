@@ -8,7 +8,7 @@ extension SuggestionCoordinator {
     // MARK: - Environment and Input Handling
 
     func handlePermissionChange() {
-        JotLogger.suggestion.debug("Permission state changed, reconciling")
+        ScribeLogger.suggestion.debug("Permission state changed, reconciling")
         reconcileWithCurrentEnvironment()
 
         // Screen Recording is optional, so revoking it no longer trips `disabledReason` and the
@@ -40,7 +40,7 @@ extension SuggestionCoordinator {
             // Single-poll AX flicker on the same element (see FocusCapabilityFlickerGate). Drop the
             // event so the overlay does not bounce; log it so the suppression is observable.
             let suppressedDetail = snapshot.capability.summary
-            JotLogger.suggestion.trace(
+            ScribeLogger.suggestion.trace(
                 // swiftlint:disable:next line_length
                 "Focus snapshot flicker suppressed: app=\(snapshot.applicationName) capability=\(snapshot.capability.shortLabel) detail=\(suppressedDetail) pendingBlockedReads=\(count)"
             )
@@ -48,7 +48,7 @@ extension SuggestionCoordinator {
         }
 
         let changedDetail = snapshot.capability.summary
-        JotLogger.suggestion.trace(
+        ScribeLogger.suggestion.trace(
             "Focus snapshot changed: app=\(snapshot.applicationName) capability=\(snapshot.capability.shortLabel) detail=\(changedDetail)"
         )
         // Start capturing visual context for a newly focused input even when predictions are
@@ -364,7 +364,7 @@ extension SuggestionCoordinator {
             "suppressed-synthetic-input",
             workID: currentWorkID,
             generation: latestGenerationNumber,
-            message: "Ignored Jot's own synthetic key event."
+            message: "Ignored Scribe's own synthetic key event."
         )
     }
 

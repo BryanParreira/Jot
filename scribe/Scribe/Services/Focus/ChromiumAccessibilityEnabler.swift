@@ -64,7 +64,7 @@ final class ChromiumAccessibilityEnabler {
         switch AXHelper.setManualAccessibility(true, forApplicationPID: pid) {
         case .success:
             primedPIDs.insert(pid)
-            JotLogger.focus.debug(
+            ScribeLogger.focus.debug(
                 "CHROME-PRIME enabled web accessibility for \(application.localizedName ?? "?")")
         case .attributeUnsupported:
             // Electron build that does not expose AXManualAccessibility; stop retrying.

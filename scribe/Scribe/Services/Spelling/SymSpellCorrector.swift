@@ -124,7 +124,7 @@ nonisolated final class SymSpellCorrector: @unchecked Sendable {
                 lock.lock()
                 loadingLanguages.remove(language)
                 lock.unlock()
-                JotLogger.app.error(
+                ScribeLogger.app.error(
                     "SymSpell dictionary resource \(language.resourceName).txt not found in bundle"
                 )
                 return
@@ -137,7 +137,7 @@ nonisolated final class SymSpellCorrector: @unchecked Sendable {
             publish(symSpell, for: language)
             loadingLanguages.remove(language)
             lock.unlock()
-            JotLogger.app.info(
+            ScribeLogger.app.info(
                 "SymSpell loaded \(symSpell.wordCount) \(language.displayName) words for correction"
             )
         }

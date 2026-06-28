@@ -88,7 +88,7 @@ final class RuntimeBootstrapModel: ObservableObject {
             do {
                 try await self.runtimeManager.prepare()
             } catch {
-                JotLogger.runtime.error("Runtime startup failed: \(error.localizedDescription)")
+                ScribeLogger.runtime.error("Runtime startup failed: \(error.localizedDescription)")
             }
         }
     }
@@ -124,7 +124,7 @@ final class RuntimeBootstrapModel: ObservableObject {
             do {
                 try await self.runtimeManager.selectModel(filename: filename)
             } catch {
-                JotLogger.runtime.error("Runtime model switch failed: \(error.localizedDescription)")
+                ScribeLogger.runtime.error("Runtime model switch failed: \(error.localizedDescription)")
             }
         }
 

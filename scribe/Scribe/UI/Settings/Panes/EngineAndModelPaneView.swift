@@ -76,7 +76,7 @@ struct EngineAndModelPaneView: View {
             Button("Delete") { deleteModel(model) }
             Button("Cancel", role: .cancel) {}
         } message: { model in
-            Text("Remove \(model.displayName) from Jot's local models folder?")
+            Text("Remove \(model.displayName) from Scribe's local models folder?")
         }
     }
 
@@ -293,7 +293,7 @@ struct EngineAndModelPaneView: View {
                     description: lmStudioModelsURL == nil
                         ? "Install LM Studio to load models from its library here."
                         : "Add models from your LM Studio library (~/.lmstudio/models) to the picker " +
-                            "above. Downloads still save to Jot's own folder.",
+                            "above. Downloads still save to Scribe's own folder.",
                     systemImage: "square.stack.3d.up"
                 )
             }

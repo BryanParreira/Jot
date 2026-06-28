@@ -56,7 +56,7 @@ final class KeyboardInputSourceMonitor {
         let wasComposing = isComposingIMEActive
         refresh()
         if wasComposing != isComposingIMEActive {
-            JotLogger.app.info("Composing IME active changed to \(self.isComposingIMEActive)")
+            ScribeLogger.app.info("Composing IME active changed to \(self.isComposingIMEActive)")
         }
     }
 

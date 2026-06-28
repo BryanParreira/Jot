@@ -47,14 +47,14 @@ final class SuggestionEngineRouter {
         ]
         switch suggestionSettings.selectedEngine {
         case .appleIntelligence:
-            JotLogger.suggestion.debug("Routing to Apple Intelligence engine", metadata: metadata)
+            ScribeLogger.suggestion.debug("Routing to Apple Intelligence engine", metadata: metadata)
             do {
                 let result = try await foundationModelEngine.generateSuggestion(for: request, onPartial: onPartial)
                 recordPerformanceMetric(modelName: "Apple Intelligence", latency: result.latency)
                 recordQualityOutcome(result)
                 return result
             } catch SuggestionClientError.unsupportedLanguageOrLocale(let message) {
-                JotLogger.suggestion.info(
+                ScribeLogger.suggestion.info(
                     "Apple Intelligence unsupported for locale, falling back to open-source: \(message)",
                     metadata: metadata.merging([
                         "fallback_engine": .string("llama"),
@@ -68,7 +68,7 @@ final class SuggestionEngineRouter {
                 )
             }
         case .llamaOpenSource:
-            JotLogger.suggestion.debug("Routing to open-source llama engine", metadata: metadata)
+            ScribeLogger.suggestion.debug("Routing to open-source llama engine", metadata: metadata)
             let result = try await llamaEngine.generateSuggestion(for: request, onPartial: onPartial)
             recordPerformanceMetric(modelName: llamaModelNameProvider() ?? "Llama", latency: result.latency)
             recordQualityOutcome(result)
@@ -164,7 +164,7 @@ final class UnavailableSuggestionEngine: SuggestionGenerating {
     }
 
     func generateSuggestion(for request: SuggestionRequest) async throws -> SuggestionResult {
-        JotLogger.suggestion.warning("Engine unavailable: \(self.message)")
+        ScribeLogger.suggestion.warning("Engine unavailable: \(self.message)")
         throw SuggestionClientError.unavailable(message)
     }
 

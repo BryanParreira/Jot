@@ -9,17 +9,17 @@ extension SuggestionCoordinator {
 
     /// Reconciles coordinator state with the current permission and focus environment.
     func start() {
-        JotLogger.suggestion.info("Suggestion coordinator starting")
+        ScribeLogger.suggestion.info("Suggestion coordinator starting")
         reconcileWithCurrentEnvironment()
     }
 
     /// Cancels any pending work and detaches long-lived callbacks during shutdown.
     func stop() {
-        JotLogger.suggestion.info("Suggestion coordinator stopping")
+        ScribeLogger.suggestion.info("Suggestion coordinator stopping")
         cancelPredictionWork()
         resetCachedGenerationContext()
         visualContextCoordinator.cancel(resetState: true)
-        hideOverlay(reason: "Overlay hidden because Jot stopped observing suggestions.")
+        hideOverlay(reason: "Overlay hidden because Scribe stopped observing suggestions.")
         inputMonitor.onEvent = nil
         inputMonitor.onSuppressedSyntheticInput = nil
         overlayController.onStateChange = nil
@@ -30,7 +30,7 @@ extension SuggestionCoordinator {
     /// Clears any active suggestion work before the runtime swaps to a different model.
     /// This prevents stale completions from the previous model from surviving the switch.
     func prepareForRuntimeModelSwitch() {
-        JotLogger.suggestion.info("Preparing for runtime model switch, clearing active state")
+        ScribeLogger.suggestion.info("Preparing for runtime model switch, clearing active state")
         cancelPredictionWork()
         resetCachedGenerationContext()
         interactionState.resetAll()
@@ -50,7 +50,7 @@ extension SuggestionCoordinator {
             return
         }
 
-        JotLogger.suggestion.info("Settings changed, resetting suggestion state")
+        ScribeLogger.suggestion.info("Settings changed, resetting suggestion state")
         let previousSnapshot = settingsSnapshot
         settingsSnapshot = snapshot
         cancelPredictionWork()

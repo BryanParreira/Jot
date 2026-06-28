@@ -230,7 +230,7 @@ final class EmojiPickerController {
             // resolved yet (AX is eventually consistent right after a focus change). Aborting here
             // looks to the user like "the picker did nothing on the first try"; log it so that
             // first-keystroke failure is distinguishable from a commit-path failure.
-            JotLogger.suggestion.debug("emoji capture aborted at open: no triggerable focus context")
+            ScribeLogger.suggestion.debug("emoji capture aborted at open: no triggerable focus context")
             machine.reset()
             return
         }
@@ -241,7 +241,7 @@ final class EmojiPickerController {
         presentPanel()
         armLongPauseTimer()
         onCaptureStateChanged?()
-        JotLogger.suggestion.debug("emoji capture opened query=\"\(query)\" matches=\(matches.count)")
+        ScribeLogger.suggestion.debug("emoji capture opened query=\"\(query)\" matches=\(matches.count)")
     }
 
     private func updateQuery(_ query: String) {
@@ -277,7 +277,7 @@ final class EmojiPickerController {
     /// insert the highlighted glyph.
     private func commitSelectedMatch() {
         guard selectedIndex >= 0, selectedIndex < matches.count else {
-            JotLogger.suggestion.debug("emoji commit (key) skipped: no selectable match query=\"\(currentQuery)\"")
+            ScribeLogger.suggestion.debug("emoji commit (key) skipped: no selectable match query=\"\(currentQuery)\"")
             cancelCapture()
             return
         }
@@ -285,7 +285,7 @@ final class EmojiPickerController {
         let glyph = selected.glyph
         let fallback = currentQuery.utf16.count + 1   // ":" + query
         recordUsage(for: selected)
-        JotLogger.suggestion.debug("emoji commit (key) glyph=\(glyph) query=\"\(currentQuery)\"")
+        ScribeLogger.suggestion.debug("emoji commit (key) glyph=\(glyph) query=\"\(currentQuery)\"")
         teardownCapture()
         scheduleReplaceEmojiQuery(with: glyph, fallbackUTF16: fallback)
     }
@@ -388,7 +388,7 @@ final class EmojiPickerController {
         let preceding = focusModel.snapshot.context?.precedingText ?? ""
         let measured = EmojiQueryRun.trailingRunUTF16Length(in: preceding)
         let deleteCount = measured ?? fallbackUTF16
-        JotLogger.suggestion.debug(
+        ScribeLogger.suggestion.debug(
             "emoji replace glyph=\(glyph) deleteUTF16=\(deleteCount) measured=\(measured != nil)"
         )
         _ = inserter.replace(deletingUTF16Count: deleteCount, with: glyph)
@@ -413,7 +413,7 @@ final class EmojiPickerController {
               context.focusChangeSequence == captureFocusSequence else {
             // The field changed (or went secure) under an open capture. This is the other common
             // "panel vanished mid-query" cause, so record it distinctly from a user cancel.
-            JotLogger.suggestion.debug("emoji capture cancelled: focus changed during capture")
+            ScribeLogger.suggestion.debug("emoji capture cancelled: focus changed during capture")
             cancelCapture()
             return
         }

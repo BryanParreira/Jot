@@ -63,7 +63,7 @@ final class FoundationModelSuggestionEngine {
 
         guard availabilityService.isAvailable else {
             let message = availabilityService.userVisibleMessage
-            JotLogger.suggestion.debug(
+            ScribeLogger.suggestion.debug(
                 "Foundation model unavailable: \(message)",
                 metadata: baseMetadata
             )
@@ -73,7 +73,7 @@ final class FoundationModelSuggestionEngine {
         do {
             let promptBytes = request.prompt.count
             let maxTokens = request.maxPredictionTokens
-            JotLogger.suggestion.debug(
+            ScribeLogger.suggestion.debug(
                 "Foundation model generating",
                 metadata: baseMetadata.merging([
                     "prompt_bytes": .stringConvertible(promptBytes),
@@ -88,7 +88,7 @@ final class FoundationModelSuggestionEngine {
             // the failure explicit instead of constructing a session with the wrong backend state.
             guard let model = availabilityService.systemLanguageModel else {
                 throw SuggestionClientError.unavailable(
-                    "Apple Intelligence reported available, but Jot could not access the system language model."
+                    "Apple Intelligence reported available, but Scribe could not access the system language model."
                 )
             }
 
@@ -148,7 +148,7 @@ final class FoundationModelSuggestionEngine {
             let normalizedChars = normalizedSuggestion.count
             let latencyMs = Int(latency * 1000)
             let suppressionReason = normalization.suppression?.rawValue ?? "none"
-            JotLogger.suggestion.debug(
+            ScribeLogger.suggestion.debug(
                 "Foundation model generated",
                 metadata: baseMetadata.merging([
                     "raw_chars": .stringConvertible(rawChars),
@@ -157,7 +157,7 @@ final class FoundationModelSuggestionEngine {
                     "latency_ms": .stringConvertible(latencyMs)
                 ]) { _, new in new }
             )
-            JotLogger.llmIO.debug(
+            ScribeLogger.llmIO.debug(
                 "foundation_model generation",
                 metadata: baseMetadata.merging([
                     "prompt": .string(prompt),
@@ -179,10 +179,10 @@ final class FoundationModelSuggestionEngine {
                 suppressionReason: normalization.suppression?.rawValue
             )
         } catch is CancellationError {
-            JotLogger.suggestion.debug("Foundation model generation cancelled", metadata: baseMetadata)
+            ScribeLogger.suggestion.debug("Foundation model generation cancelled", metadata: baseMetadata)
             throw SuggestionClientError.cancelled
         } catch let error as LanguageModelSession.GenerationError {
-            JotLogger.suggestion.error(
+            ScribeLogger.suggestion.error(
                 "Foundation model generation error: \(error.localizedDescription)",
                 metadata: baseMetadata
             )
@@ -190,7 +190,7 @@ final class FoundationModelSuggestionEngine {
         } catch let error as SuggestionClientError {
             throw error
         } catch {
-            JotLogger.suggestion.error(
+            ScribeLogger.suggestion.error(
                 "Foundation model unexpected error: \(error.localizedDescription)",
                 metadata: baseMetadata
             )
@@ -213,7 +213,7 @@ final class FoundationModelSuggestionEngine {
 
         let session = ensureSession(for: request, model: model)
         session.prewarm()
-        JotLogger.suggestion.debug("Foundation model session prewarmed")
+        ScribeLogger.suggestion.debug("Foundation model session prewarmed")
     }
 
     /// Dropping the cached session forces the next request to rebuild instructions, which is the
@@ -311,7 +311,7 @@ final class FoundationModelSuggestionEngine {
         case .unsupportedGuide:
             return .generationFailed("Apple Intelligence rejected a guided-generation request Jot sent.")
         case .decodingFailure:
-            return .generationFailed("Apple Intelligence returned a response Jot could not decode.")
+            return .generationFailed("Apple Intelligence returned a response Scribe could not decode.")
         case .rateLimited:
             return .generationFailed("Apple Intelligence is temporarily rate limited.")
         case .concurrentRequests:

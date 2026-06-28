@@ -92,7 +92,7 @@ final class ScreenshotContextGenerator {
             }
 
             let finalTitleContext = boundedSummaryText(normalizedTitle)
-            JotLogger.app.debug(
+            ScribeLogger.app.debug(
                 "Visual context ready source=\(ContextSource.ocrFallback.rawValue) chars=\(finalTitleContext.count)"
             )
             return VisualContextExcerpt(text: finalTitleContext)
@@ -141,7 +141,7 @@ final class ScreenshotContextGenerator {
             )
         }
 
-        JotLogger.app.debug(
+        ScribeLogger.app.debug(
             "Visual context ready source=\(ContextSource.ocrFallback.rawValue) chars=\(finalContextText.count)"
         )
 

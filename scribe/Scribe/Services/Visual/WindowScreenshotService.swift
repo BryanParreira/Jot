@@ -67,7 +67,7 @@ struct WindowScreenshotService: WindowScreenshotCapturing {
         let processIdentifier = pid_t(context.processIdentifier)
 
         guard CGPreflightScreenCaptureAccess() else {
-            JotLogger.app.warning("Screenshot blocked: Screen Recording permission missing")
+            ScribeLogger.app.warning("Screenshot blocked: Screen Recording permission missing")
             throw WindowScreenshotError.screenRecordingPermissionMissing
         }
 
@@ -81,13 +81,13 @@ struct WindowScreenshotService: WindowScreenshotCapturing {
             })
 
         guard let matchingWindow else {
-            JotLogger.app.debug("No visible window for pid \(processIdentifier)")
+            ScribeLogger.app.debug("No visible window for pid \(processIdentifier)")
             throw WindowScreenshotError.noVisibleWindowForProcess(processIdentifier)
         }
         let windowTitle = matchingWindow.title ?? "untitled"
         let windowWidth = Int(matchingWindow.frame.width)
         let windowHeight = Int(matchingWindow.frame.height)
-        JotLogger.app.trace("Capturing window: \(windowTitle) (\(windowWidth)x\(windowHeight))")
+        ScribeLogger.app.trace("Capturing window: \(windowTitle) (\(windowWidth)x\(windowHeight))")
 
         let sourceRect = snapshotRect(
             around: context,

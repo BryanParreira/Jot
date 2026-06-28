@@ -28,7 +28,7 @@ struct SettingsContainerView: View {
     let onShowWelcome: () -> Void
     let clearEmojiHistory: () -> Void
 
-    @AppStorage("jotSettingsSelectedCategoryV2")
+    @AppStorage("scribeSettingsSelectedCategoryV2")
     private var storedCategoryRawValue: String = SettingsCategory.home.rawValue
 
     @StateObject private var navigation = SettingsNavigationModel()

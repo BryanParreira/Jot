@@ -28,7 +28,7 @@ enum DownloadFileRescuer {
         fileManager: FileManager = .default
     ) throws -> URL {
         let holdingURL = fileManager.temporaryDirectory
-            .appendingPathComponent("Jot-download-\(UUID().uuidString)", isDirectory: false)
+            .appendingPathComponent("Scribe-download-\(UUID().uuidString)", isDirectory: false)
         try fileManager.moveItem(at: location, to: holdingURL)
         return holdingURL
     }

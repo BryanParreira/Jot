@@ -64,17 +64,17 @@ final class PermissionManager: ObservableObject {
         // `@Published` notifies on assignment, even when the value is unchanged. Compare first so
         // the 2-second poll does not redraw SwiftUI surfaces that already have the right state.
         if accessibilityGranted != latestAccessibilityGranted {
-            JotLogger.app.info("Accessibility permission changed: \(latestAccessibilityGranted)")
+            ScribeLogger.app.info("Accessibility permission changed: \(latestAccessibilityGranted)")
             accessibilityGranted = latestAccessibilityGranted
         }
 
         if inputMonitoringGranted != latestInputMonitoringGranted {
-            JotLogger.app.info("Input Monitoring permission changed: \(latestInputMonitoringGranted)")
+            ScribeLogger.app.info("Input Monitoring permission changed: \(latestInputMonitoringGranted)")
             inputMonitoringGranted = latestInputMonitoringGranted
         }
 
         if screenRecordingGranted != latestScreenRecordingGranted {
-            JotLogger.app.info("Screen Recording permission changed: \(latestScreenRecordingGranted)")
+            ScribeLogger.app.info("Screen Recording permission changed: \(latestScreenRecordingGranted)")
             screenRecordingGranted = latestScreenRecordingGranted
         }
 

@@ -21,7 +21,7 @@ import SwiftUI
 enum ContextLivePreview {
     /// AX identifier on the preview field. `FocusTracker` keys on this exact value to allow
     /// self-capture for this element and nothing else in Jot's own windows. Wired into the focus
-    /// pipeline in `JotAppEnvironment`.
+    /// pipeline in `ScribeAppEnvironment`.
     static let accessibilityIdentifier = "com.bryanbernardo.scribe.settings.context.live-preview"
 }
 

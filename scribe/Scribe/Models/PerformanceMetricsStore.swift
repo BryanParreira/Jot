@@ -74,7 +74,7 @@ final class PerformanceMetricsStore: ObservableObject {
             let data = try JSONEncoder().encode(entries)
             userDefaults.set(data, forKey: Self.entriesDefaultsKey)
         } catch {
-            JotLogger.app.error(
+            ScribeLogger.app.error(
                 "Failed to persist performance metrics: \(error.localizedDescription)",
                 metadata: ["entry_count": .stringConvertible(entries.count)]
             )

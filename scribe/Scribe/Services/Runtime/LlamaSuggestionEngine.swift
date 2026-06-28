@@ -73,7 +73,7 @@ final class LlamaSuggestionEngine {
                 }
                 self?.promptCacheHintTracker.recordSuccessfulRequest(request)
             } catch {
-                JotLogger.suggestion.debug(
+                ScribeLogger.suggestion.debug(
                     "Llama prewarm skipped: \(error.localizedDescription)",
                     metadata: ["request_id": .string(request.requestID), "engine": .string("llama")]
                 )
@@ -109,7 +109,7 @@ final class LlamaSuggestionEngine {
             let startTime = Date()
             let cachedPrefixBytes = promptCacheHintTracker.cachedPrefixBytes(for: request)
             let hintDesc = cachedPrefixBytes.map(String.init) ?? "none"
-            JotLogger.suggestion.debug(
+            ScribeLogger.suggestion.debug(
                 "Llama generating",
                 metadata: baseMetadata.merging([
                     "prompt_bytes": .stringConvertible(request.prompt.count),
@@ -189,7 +189,7 @@ final class LlamaSuggestionEngine {
             // nothing from one a filter dropped — the join key for judging decode quality on device.
             let suppressionReason = normalization.suppression?.rawValue ?? "none"
             let averageLogprobDescription = output.averageLogprob.map { String(format: "%.3f", $0) } ?? "off"
-            JotLogger.suggestion.debug(
+            ScribeLogger.suggestion.debug(
                 "Llama generated",
                 metadata: baseMetadata.merging([
                     "raw_chars": .stringConvertible(rawChars),
@@ -199,7 +199,7 @@ final class LlamaSuggestionEngine {
                     "latency_ms": .stringConvertible(latencyMs)
                 ]) { _, new in new }
             )
-            JotLogger.llmIO.debug(
+            ScribeLogger.llmIO.debug(
                 "llama generation",
                 metadata: baseMetadata.merging([
                     "prompt": .string(request.prompt),
@@ -223,7 +223,7 @@ final class LlamaSuggestionEngine {
                 suppressionReason: normalization.suppression?.rawValue
             )
         } catch is CancellationError {
-            JotLogger.suggestion.debug("Llama generation cancelled", metadata: baseMetadata)
+            ScribeLogger.suggestion.debug("Llama generation cancelled", metadata: baseMetadata)
             throw SuggestionClientError.cancelled
         } catch LlamaRuntimeError.cancelled {
             // A cancelled generation is NOT a runtime failure, so it must not reset the KV cache.
@@ -239,24 +239,24 @@ final class LlamaSuggestionEngine {
             // `LlamaRuntimeCore.generate` already unwound cleanly (its KV-trim defer restored
             // prompt-only state), so the cache is still valid and reusable. Route this to the same
             // quiet path as `CancellationError` and leave the cache intact.
-            JotLogger.suggestion.debug("Llama generation cancelled (runtime task)", metadata: baseMetadata)
+            ScribeLogger.suggestion.debug("Llama generation cancelled (runtime task)", metadata: baseMetadata)
             throw SuggestionClientError.cancelled
         } catch let error as LlamaRuntimeError {
-            JotLogger.suggestion.error(
+            ScribeLogger.suggestion.error(
                 "Llama runtime error, resetting cache: \(error.localizedDescription)",
                 metadata: baseMetadata
             )
             await resetCachedGenerationContext()
             throw SuggestionClientError.unavailable(error.localizedDescription)
         } catch let error as SuggestionClientError {
-            JotLogger.suggestion.error(
+            ScribeLogger.suggestion.error(
                 "Suggestion client error, resetting cache: \(error.localizedDescription)",
                 metadata: baseMetadata
             )
             await resetCachedGenerationContext()
             throw error
         } catch {
-            JotLogger.suggestion.error(
+            ScribeLogger.suggestion.error(
                 "Unexpected generation error, resetting cache: \(error.localizedDescription)",
                 metadata: baseMetadata
             )

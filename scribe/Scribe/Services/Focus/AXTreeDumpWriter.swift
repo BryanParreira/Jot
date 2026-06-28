@@ -53,7 +53,7 @@ enum AXTreeDumpWriter {
     /// `~/Desktop/cotabby-ax-dump.txt`. The file is overwritten so the user (or an AI debugger)
     /// always inspects the latest snapshot at a stable path.
     ///
-    /// Writes are best-effort: a failed disk write is logged through `JotLogger.focus` and
+    /// Writes are best-effort: a failed disk write is logged through `ScribeLogger.focus` and
     /// does not propagate, since AX dumping is purely diagnostic.
     private static func writeAXTreeDumpToDesktop(focusedElement: AXUIElement, app: String, bundle: String) {
         let timestamp = Self.dumpTimestampFormatter.string(from: Date())
@@ -81,13 +81,13 @@ enum AXTreeDumpWriter {
 
         guard let desktopURL = FileManager.default
             .urls(for: .desktopDirectory, in: .userDomainMask).first else {
-            JotLogger.focus.error("AX dump skipped: no Desktop directory available")
+            ScribeLogger.focus.error("AX dump skipped: no Desktop directory available")
             return
         }
         let targetURL = desktopURL.appendingPathComponent("cotabby-ax-dump.txt", isDirectory: false)
         do {
             try out.write(to: targetURL, atomically: true, encoding: .utf8)
-            JotLogger.focus.debug(
+            ScribeLogger.focus.debug(
                 "Wrote AX dump",
                 metadata: [
                     "path": .string(targetURL.path),
@@ -95,7 +95,7 @@ enum AXTreeDumpWriter {
                 ]
             )
         } catch {
-            JotLogger.focus.error(
+            ScribeLogger.focus.error(
                 "Failed to write AX dump: \(error.localizedDescription)",
                 metadata: ["path": .string(targetURL.path)]
             )

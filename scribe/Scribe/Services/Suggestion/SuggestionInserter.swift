@@ -17,7 +17,7 @@ final class SuggestionInserter {
     private(set) var lastErrorMessage: String?
 
     /// Reads whether a composing IME (Japanese kana, Chinese pinyin, Korean hangul, ...) is currently
-    /// active. Wired to `KeyboardInputSourceMonitor` in `JotAppEnvironment`. When true, `insert(_:)`
+    /// active. Wired to `KeyboardInputSourceMonitor` in `ScribeAppEnvironment`. When true, `insert(_:)`
     /// commits through an IME-safe channel (Accessibility write, then clipboard paste) instead of a
     /// synthetic keystroke, which an active input method would otherwise re-absorb into composition so
     /// the accept silently fails. Defaults to "no IME" so tests and previews need no wiring.
@@ -65,7 +65,7 @@ final class SuggestionInserter {
         let normalized = suggestion.replacingOccurrences(of: "\r", with: "")
         guard !normalized.isEmpty else {
             lastErrorMessage = "Suggestion was empty."
-            JotLogger.suggestion.warning("Insertion skipped: suggestion was empty after normalization")
+            ScribeLogger.suggestion.warning("Insertion skipped: suggestion was empty after normalization")
             return false
         }
 
@@ -82,12 +82,12 @@ final class SuggestionInserter {
         if isComposingIMEActiveProvider() {
             if insertViaPaste(normalized) {
                 lastErrorMessage = nil
-                JotLogger.suggestion.debug("Inserted \(normalized.count) characters via paste (IME active)")
+                ScribeLogger.suggestion.debug("Inserted \(normalized.count) characters via paste (IME active)")
                 return true
             }
             let fallbackMessage = "IME-safe paste failed for \(normalized.count) characters; "
                 + "falling back to a synthetic keystroke the input method may swallow"
-            JotLogger.suggestion.warning("\(fallbackMessage)")
+            ScribeLogger.suggestion.warning("\(fallbackMessage)")
         }
 
         // Paste path (opt-in): a long or multi-line completion is steadier as a clipboard paste in
@@ -98,14 +98,14 @@ final class SuggestionInserter {
             pasteEnabled: Self.isPasteInsertionEnabled
         ) == .paste, insertViaPaste(normalized) {
             lastErrorMessage = nil
-            JotLogger.suggestion.debug("Inserted \(normalized.count) characters via clipboard paste")
+            ScribeLogger.suggestion.debug("Inserted \(normalized.count) characters via clipboard paste")
             return true
         }
 
         guard let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
               let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false) else {
             lastErrorMessage = "Unable to create a synthetic keyboard event."
-            JotLogger.suggestion.error("Failed to create synthetic keyboard events for insertion")
+            ScribeLogger.suggestion.error("Failed to create synthetic keyboard events for insertion")
             return false
         }
 
@@ -122,7 +122,7 @@ final class SuggestionInserter {
         keyDownEvent.post(tap: .cghidEventTap)
         keyUpEvent.post(tap: .cghidEventTap)
         lastErrorMessage = nil
-        JotLogger.suggestion.debug("Inserted \(normalized.count) characters via synthetic keystroke")
+        ScribeLogger.suggestion.debug("Inserted \(normalized.count) characters via synthetic keystroke")
         return true
     }
 
@@ -148,7 +148,7 @@ final class SuggestionInserter {
             guard let down = CGEvent(keyboardEventSource: nil, virtualKey: Self.backspaceKeyCode, keyDown: true),
                   let up = CGEvent(keyboardEventSource: nil, virtualKey: Self.backspaceKeyCode, keyDown: false) else {
                 lastErrorMessage = "Unable to create a synthetic delete event."
-                JotLogger.suggestion.error("Replace failed: could not create delete events")
+                ScribeLogger.suggestion.error("Replace failed: could not create delete events")
                 return false
             }
             events.append(down)
@@ -159,7 +159,7 @@ final class SuggestionInserter {
             guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
                   let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false) else {
                 lastErrorMessage = "Unable to create a synthetic keyboard event."
-                JotLogger.suggestion.error("Replace failed: could not create insertion events")
+                ScribeLogger.suggestion.error("Replace failed: could not create insertion events")
                 return false
             }
             down.keyboardSetUnicodeString(stringLength: plan.insertUTF16.count, unicodeString: plan.insertUTF16)
@@ -180,7 +180,7 @@ final class SuggestionInserter {
         }
 
         lastErrorMessage = nil
-        JotLogger.suggestion.debug(
+        ScribeLogger.suggestion.debug(
             "Replaced \(plan.backspaceCount) unit(s) with \(plan.insertUTF16.count)-unit text via synthetic keystrokes"
         )
         return true
@@ -218,7 +218,7 @@ final class SuggestionInserter {
         // session source still never pasted in Chrome. The menu press drives the same paste command
         // those key events would have reached, one IPC hop earlier.
         if pressPasteMenuItem() {
-            JotLogger.suggestion.debug("Paste committed via Edit > Paste menu press")
+            ScribeLogger.suggestion.debug("Paste committed via Edit > Paste menu press")
         } else {
             // Fallback synthetic Cmd-V: session source + annotated session tap so the event's own
             // `.maskCommand` flag survives (the HID tap merges flags with live hardware state). The
@@ -242,7 +242,7 @@ final class SuggestionInserter {
             suppressionController.registerSyntheticInsertion(expectedKeyDownCount: 1)
             keyDown.post(tap: .cgAnnotatedSessionEventTap)
             keyUp.post(tap: .cgAnnotatedSessionEventTap)
-            JotLogger.suggestion.debug("Paste committed via synthetic Cmd-V (no Paste menu item found)")
+            ScribeLogger.suggestion.debug("Paste committed via synthetic Cmd-V (no Paste menu item found)")
         }
 
         // Give the host time to service Cmd-V, then hand the clipboard back, but only if our completion

@@ -6,7 +6,7 @@ import Logging
 /// File overview:
 /// Starts the long-lived services that power permissions, focus tracking, suggestion generation,
 /// overlay rendering, acceptance, and app updates. Dependency construction now lives in
-/// `JotAppEnvironment`, while `AppDelegate` focuses on lifecycle wiring and cross-subsystem
+/// `ScribeAppEnvironment`, while `AppDelegate` focuses on lifecycle wiring and cross-subsystem
 /// subscriptions.
 ///
 /// In React terms, this is the top-level container that owns the long-lived stores/services.
@@ -36,16 +36,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// subscriptions wiring the focus-poll-interval setting and the global-toggle hotkey rebind to the
     /// runtime). If the environment deallocated when `init` returned, those subscriptions would be
     /// cancelled and both settings would silently stop working until the next relaunch.
-    private let environment: JotAppEnvironment
+    private let environment: ScribeAppEnvironment
     private var cancellables = Set<AnyCancellable>()
     private var didStartServices = false
 
     override init() {
-        JotLogger.bootstrap()
+        ScribeLogger.bootstrap()
 
         // Build the dependency graph once up front so every scene/view observes the same
         // long-lived objects for the entire app session.
-        let environment = JotAppEnvironment()
+        let environment = ScribeAppEnvironment()
         self.environment = environment
         permissionManager = environment.permissionManager
         runtimeModel = environment.runtimeModel
@@ -122,13 +122,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Starts runtime and polling services once AppKit reports that app launch finished.
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !Self.isRunningUnderXCTest else {
-            JotLogger.app.info("Unit test host detected; skipping production service startup")
+            ScribeLogger.app.info("Unit test host detected; skipping production service startup")
             return
         }
 
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        JotLogger.app.info("Cotabby \(version) (build \(build)) launching on macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
+        ScribeLogger.app.info("Scribe \(version) (build \(build)) launching on macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
         applyLaunchAtLoginDefaultIfNeeded()
         startRuntimeIfPreferredEngineRequiresIt()
         focusModel.start()
@@ -139,7 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         welcomeCoordinator.presentIfNeeded()
         welcomeCoordinator.presentPermissionReminderIfNeeded()
         didStartServices = true
-        JotLogger.app.info("All services started")
+        ScribeLogger.app.info("All services started")
 
         // Dev affordance in the spirit of `-cotabby-debug`: a menu-bar-only app has no scriptable
         // path to its Settings window (the status item is unreachable from AppleScript), so UI
@@ -158,7 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !defaults.bool(forKey: appliedKey) else { return }
         LaunchAtLogin.isEnabled = true
         defaults.set(true, forKey: appliedKey)
-        JotLogger.app.info("Applied default Open at Login = true (one-time)")
+        ScribeLogger.app.info("Applied default Open at Login = true (one-time)")
     }
 
     /// Synchronously releases native runtime resources before AppKit calls `exit()`.
@@ -180,8 +180,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        JotLogger.app.info("Cotabby terminating, releasing services")
-        activationIndicatorController.hide(reason: "Activation indicator hidden because Jot is terminating.")
+        ScribeLogger.app.info("Scribe terminating, releasing services")
+        activationIndicatorController.hide(reason: "Activation indicator hidden because Scribe is terminating.")
         focusDebugOverlayController?.hide()
         suggestionCoordinator.stop()
         inlineCommandCoordinator.stop()

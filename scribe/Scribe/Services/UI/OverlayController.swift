@@ -259,7 +259,7 @@ final class OverlayController: SuggestionOverlayControlling {
         // rejects NaN/Inf rects, so reaching here means the layout math produced one; skip the show
         // rather than crash on the hottest path.
         guard AXHelper.rectHasFiniteComponents(frame) else {
-            JotLogger.suggestion.warning("Skipped inline overlay: computed a non-finite frame")
+            ScribeLogger.suggestion.warning("Skipped inline overlay: computed a non-finite frame")
             return
         }
         panel.setFrame(frame.integral, display: true)
@@ -402,7 +402,7 @@ final class OverlayController: SuggestionOverlayControlling {
 
         let panelFrame = layout.panelFrame
         guard AXHelper.rectHasFiniteComponents(panelFrame) else {
-            JotLogger.suggestion.warning("Skipped mirror overlay: computed a non-finite frame")
+            ScribeLogger.suggestion.warning("Skipped mirror overlay: computed a non-finite frame")
             return
         }
         panel.setFrame(panelFrame, display: true)

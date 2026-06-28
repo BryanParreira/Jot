@@ -53,7 +53,7 @@ enum SettingsAttentionEvaluator {
         switch category {
         case .permissions:
             guard !inputs.permissionsGranted else { return nil }
-            return "Jot needs more access to run. Grant the permissions below to enable autocomplete."
+            return "Scribe needs more access to run. Grant the permissions below to enable autocomplete."
 
         case .engineAndModel:
             switch inputs.selectedEngine {

@@ -137,13 +137,13 @@ final class InputMonitor {
 
     /// Installs the observer tap and begins listening for global keyboard activity.
     func start() {
-        JotLogger.app.info("Input monitor starting")
+        ScribeLogger.app.info("Input monitor starting")
         refresh()
     }
 
     /// Removes both taps and stops observing keyboard events.
     func stop() {
-        JotLogger.app.info("Input monitor stopping")
+        ScribeLogger.app.info("Input monitor stopping")
         destroyAcceptTap()
         destroyToggleTap()
         destroyObserverTap()
@@ -260,10 +260,10 @@ final class InputMonitor {
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            JotLogger.app.warning("Failed to create CGEvent observer tap — Input Monitoring permission may be missing")
+            ScribeLogger.app.warning("Failed to create CGEvent observer tap — Input Monitoring permission may be missing")
             return
         }
-        JotLogger.app.info("CGEvent observer tap installed (listen-only)")
+        ScribeLogger.app.info("CGEvent observer tap installed (listen-only)")
 
         observerTap = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
@@ -306,10 +306,10 @@ final class InputMonitor {
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            JotLogger.app.warning("Failed to create CGEvent accept tap")
+            ScribeLogger.app.warning("Failed to create CGEvent accept tap")
             return
         }
-        JotLogger.app.info("CGEvent accept tap installed (active, accept-key only)")
+        ScribeLogger.app.info("CGEvent accept tap installed (active, accept-key only)")
 
         acceptTap = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
@@ -351,10 +351,10 @@ final class InputMonitor {
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            JotLogger.app.warning("Failed to create CGEvent toggle tap")
+            ScribeLogger.app.warning("Failed to create CGEvent toggle tap")
             return
         }
-        JotLogger.app.info("CGEvent toggle tap installed (active, toggle-hotkey only)")
+        ScribeLogger.app.info("CGEvent toggle tap installed (active, toggle-hotkey only)")
 
         toggleTap = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
@@ -393,7 +393,7 @@ final class InputMonitor {
             CFMachPortInvalidate(tap)
         }
         acceptTap = nil
-        JotLogger.app.info("CGEvent accept tap removed")
+        ScribeLogger.app.info("CGEvent accept tap removed")
     }
 
     private func destroyToggleTap() {
@@ -409,7 +409,7 @@ final class InputMonitor {
             CFMachPortInvalidate(tap)
         }
         toggleTap = nil
-        JotLogger.app.info("CGEvent toggle tap removed")
+        ScribeLogger.app.info("CGEvent toggle tap removed")
     }
 
     /// Active toggle tap: consumes a keystroke only when it matches the configured global-toggle
@@ -420,7 +420,7 @@ final class InputMonitor {
     func handleToggleTap(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
-            JotLogger.app.warning("Toggle tap was disabled by system, re-enabling")
+            ScribeLogger.app.warning("Toggle tap was disabled by system, re-enabling")
             if let toggleTap {
                 CGEvent.tapEnable(tap: toggleTap, enable: true)
             }
@@ -443,7 +443,7 @@ final class InputMonitor {
             }
 
             onGlobalToggleHotkey?()
-            JotLogger.app.debug("Toggle tap consumed keyCode=\(keyCode) modifiers=\(modifiers.rawValue)")
+            ScribeLogger.app.debug("Toggle tap consumed keyCode=\(keyCode) modifiers=\(modifiers.rawValue)")
             return nil
 
         default:
@@ -460,7 +460,7 @@ final class InputMonitor {
     func handleObserverTap(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
-            JotLogger.app.warning("Observer tap was disabled by system, re-enabling")
+            ScribeLogger.app.warning("Observer tap was disabled by system, re-enabling")
             if let observerTap {
                 CGEvent.tapEnable(tap: observerTap, enable: true)
             }
@@ -527,7 +527,7 @@ final class InputMonitor {
     func handleAcceptTap(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
-            JotLogger.app.warning("Accept tap was disabled by system, re-enabling")
+            ScribeLogger.app.warning("Accept tap was disabled by system, re-enabling")
             if let acceptTap {
                 CGEvent.tapEnable(tap: acceptTap, enable: true)
             }
@@ -592,12 +592,12 @@ final class InputMonitor {
         guard shouldConsumeAcceptKeyProvider() else {
             let message = "Accept tap declining to consume keyCode=\(keyEvent.keyCode): "
                 + "coordinator reports no visible suggestion"
-            JotLogger.app.debug("\(message)")
+            ScribeLogger.app.debug("\(message)")
             return .passThrough
         }
 
         guard let onEvent else {
-            JotLogger.app.debug("Accept tap declining to consume keyCode=\(keyEvent.keyCode): no event handler")
+            ScribeLogger.app.debug("Accept tap declining to consume keyCode=\(keyEvent.keyCode): no event handler")
             return .passThrough
         }
 
@@ -608,14 +608,14 @@ final class InputMonitor {
             flags: keyEvent.flags
         )
         guard onEvent(capturedEvent) else {
-            JotLogger.app.debug(
+            ScribeLogger.app.debug(
                 "Accept tap passed keyCode=\(keyEvent.keyCode) through because coordinator declined acceptance"
             )
             return .passThrough
         }
 
         let eventModifiers = ShortcutModifierMask(eventFlags: keyEvent.flags)
-        JotLogger.app.debug(
+        ScribeLogger.app.debug(
             "Accept tap consumed keyCode=\(keyEvent.keyCode) modifiers=\(eventModifiers.rawValue)"
         )
         return .consume

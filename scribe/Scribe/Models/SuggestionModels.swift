@@ -598,7 +598,7 @@ enum SuggestionDebugState: Equatable {
         case .generating:
             return "Requesting a completion from the active suggestion backend."
         case .ready:
-            return "Ready means Jot has buffered a non-empty normalized completion for this field and can render it as ghost text."
+            return "Ready means Scribe has buffered a non-empty normalized completion for this field and can render it as ghost text."
         }
     }
 }

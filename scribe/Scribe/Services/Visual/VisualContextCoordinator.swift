@@ -110,7 +110,7 @@ final class VisualContextCoordinator {
 
     /// Launches the screenshot-derived augmentation session for a settled focused field.
     private func launchSession(for snapshotContext: FocusedInputSnapshot) {
-        JotLogger.app.debug("Starting visual context session for element \(snapshotContext.elementIdentifier)")
+        ScribeLogger.app.debug("Starting visual context session for element \(snapshotContext.elementIdentifier)")
         let hasPermission = screenRecordingPermissionProvider()
         let initialStatus: VisualContextStatus =
             hasPermission
@@ -155,13 +155,13 @@ final class VisualContextCoordinator {
                     identity: snapshotContext.identity
                 )
             } catch is CancellationError {
-                JotLogger.app.debug("Visual context generation cancelled")
+                ScribeLogger.app.debug("Visual context generation cancelled")
                 return
             } catch let error as ScreenshotContextGenerationError {
-                JotLogger.app.warning("Visual context generation error: \(error.localizedDescription)")
+                ScribeLogger.app.warning("Visual context generation error: \(error.localizedDescription)")
                 setStatus(errorStatus(for: error), for: session.sessionID)
             } catch {
-                JotLogger.app.error("Visual context generation failed: \(error.localizedDescription)")
+                ScribeLogger.app.error("Visual context generation failed: \(error.localizedDescription)")
                 setStatus(.failed(error.localizedDescription), for: session.sessionID)
             }
         }
@@ -229,7 +229,7 @@ final class VisualContextCoordinator {
         activeAugmentationSession?.excerpt = excerpt
         status = .ready
         latestExcerpt = excerpt.text
-        JotLogger.app.debug("Visual context ready: \(excerpt.text.count) chars")
+        ScribeLogger.app.debug("Visual context ready: \(excerpt.text.count) chars")
         publishState()
         onInjectedContextReady?(identity)
     }
