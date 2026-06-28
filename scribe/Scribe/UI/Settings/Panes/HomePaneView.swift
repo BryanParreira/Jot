@@ -265,7 +265,7 @@ struct HomePaneView: View {
                 .controlSize(.small)
                 .labelsHidden()
                 .tint(.green)
-                .accessibilityLabel("Enable Jot globally")
+                .accessibilityLabel("Enable Scribe globally")
         }
     }
 

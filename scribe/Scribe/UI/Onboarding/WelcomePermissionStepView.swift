@@ -10,7 +10,7 @@ import SwiftUI
 /// Navigation (Back/Continue) is owned by `WelcomeView`'s pinned footer rather than this view, so
 /// the Continue button can never scroll off-screen behind tall content.
 ///
-/// The list is derived from `CotabbyPermissionKind` (required cards from
+/// The list is derived from `ScribePermissionKind` (required cards from
 /// `isRequiredForAutocomplete`, then optional-enhancement cards from `isOptionalEnhancement`) so
 /// the product's permission model and first-run UI cannot drift apart.
 struct WelcomePermissionStepView: View {
@@ -19,14 +19,14 @@ struct WelcomePermissionStepView: View {
     let permissionGuidanceController: PermissionGuidanceController
 
     /// Permissions that block core autocomplete; the user must grant these to continue.
-    private var requiredPermissions: [CotabbyPermissionKind] {
-        CotabbyPermissionKind.allCases.filter(\.isRequiredForAutocomplete)
+    private var requiredPermissions: [ScribePermissionKind] {
+        ScribePermissionKind.allCases.filter(\.isRequiredForAutocomplete)
     }
 
     /// Optional enhancements (Screen Recording today). Shown so visual context is discoverable at
     /// first run, but they never block the Continue button.
-    private var optionalPermissions: [CotabbyPermissionKind] {
-        CotabbyPermissionKind.allCases.filter(\.isOptionalEnhancement)
+    private var optionalPermissions: [ScribePermissionKind] {
+        ScribePermissionKind.allCases.filter(\.isOptionalEnhancement)
     }
 
     var body: some View {
@@ -34,7 +34,7 @@ struct WelcomePermissionStepView: View {
             OnboardingStepHeader(
                 systemImage: "lock.shield.fill",
                 title: "Two quick permissions",
-                subtitle: "Jot needs to read the field you're typing in and watch for the accept key.\n"
+                subtitle: "Scribe needs to read the field you're typing in and watch for the accept key.\n"
                     + "The optional one unlocks smarter, screen-aware suggestions."
             )
             .onboardingReveal(0)
@@ -68,7 +68,7 @@ struct WelcomePermissionStepView: View {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 10, weight: .medium))
 
-                Text("Everything Jot reads stays on your Mac. Nothing is ever uploaded.")
+                Text("Everything Scribe reads stays on your Mac. Nothing is ever uploaded.")
                     .font(.system(size: 12, design: .rounded))
             }
             .foregroundStyle(.tertiary)
@@ -82,7 +82,7 @@ struct WelcomePermissionStepView: View {
 
 // MARK: - Permission tint
 
-extension CotabbyPermissionKind {
+extension ScribePermissionKind {
     /// Per-permission tile tint, defined here in the UI layer so `PermissionModels` stays free of
     /// SwiftUI. Distinct hues per row is the System Settings idiom and makes the step scannable.
     var onboardingTint: Color {
@@ -105,7 +105,7 @@ extension CotabbyPermissionKind {
 /// controller needs a global rect to anchor its drag-helper animation. That screen-space concern
 /// stays here in the view rather than leaking into the controller.
 private struct PermissionCard: View {
-    let permission: CotabbyPermissionKind
+    let permission: ScribePermissionKind
     let granted: Bool
     var isOptional = false
     let permissionGuidanceController: PermissionGuidanceController

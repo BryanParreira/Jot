@@ -18,14 +18,14 @@ struct AppsPaneView: View {
     var body: some View {
         SettingsPaneScaffold {
             Section("Disabled Apps") {
-                Text("Jot won't autocomplete in these apps. Add an app you can't disable from the "
+                Text("Scribe won't autocomplete in these apps. Add an app you can't disable from the "
                     + "menu bar, like a launcher that closes the moment it loses focus.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .settingsItem(.disabledApps)
 
                 if suggestionSettings.disabledAppRules.isEmpty {
-                    Text("No apps are disabled. Jot is active in every supported field.")
+                    Text("No apps are disabled. Scribe is active in every supported field.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
@@ -165,7 +165,7 @@ struct AppsPaneView: View {
         panel.canChooseFiles = true
         panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
         panel.prompt = "Disable"
-        panel.message = "Choose apps where Jot should not autocomplete."
+        panel.message = "Choose apps where Scribe should not autocomplete."
 
         guard panel.runModal() == .OK else {
             return

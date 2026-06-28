@@ -35,7 +35,7 @@ struct WelcomeView: View {
     let onStepChange: (Int) -> Void
     /// True when this user has completed a prior onboarding version. The Custom path keeps the
     /// user's existing settings instead of overwriting them with template defaults, since they have
-    /// already tuned Cotabby; advancing via "Set up later" preserves that.
+    /// already tuned Scribe; advancing via "Set up later" preserves that.
     let isReturningUser: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -255,7 +255,7 @@ extension WelcomeView {
             WelcomeNavigation(
                 canGoBack: true,
                 canContinue: !suggestionSettings.responseLanguages.isEmpty,
-                disabledHint: "Add at least one language so Jot knows what to write in.",
+                disabledHint: "Add at least one language so Scribe knows what to write in.",
                 onBack: { go(to: .template) },
                 onContinue: { go(to: .keybind) }
             )
@@ -429,7 +429,7 @@ extension WelcomeView {
             .frame(width: 44, height: 30)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Jot lives in your menu bar")
+                Text("Scribe lives in your menu bar")
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
 
                 Text("Click the cat to pause suggestions, switch models, or open Settings.")

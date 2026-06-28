@@ -15,7 +15,7 @@ final class PermissionGuidanceController {
     private var overlayController: PermissionOverlayWindowController?
     private var trackingTimer: Timer?
     private var activationObserver: NSObjectProtocol?
-    private var activePermission: CotabbyPermissionKind?
+    private var activePermission: ScribePermissionKind?
     private var pendingSourceFrameInScreen: CGRect?
     private var hasPresentedOverlay = false
     private var isOverlayVisible = false
@@ -41,7 +41,7 @@ final class PermissionGuidanceController {
     /// The controller chooses the appropriate experience based on the permission's metadata. That
     /// keeps the view layer simple: onboarding asks for help with a permission, and this type
     /// decides whether that means a rich guided overlay or a plain Settings deep link.
-    func requestAccess(for permission: CotabbyPermissionKind, sourceFrameInScreen: CGRect? = nil) {
+    func requestAccess(for permission: ScribePermissionKind, sourceFrameInScreen: CGRect? = nil) {
         permissionManager.refresh()
         guard !permissionManager.isGranted(permission) else {
             return
@@ -79,7 +79,7 @@ final class PermissionGuidanceController {
         lastSettingsFrame = nil
     }
 
-    private func presentGuidance(for permission: CotabbyPermissionKind, sourceFrameInScreen: CGRect?) {
+    private func presentGuidance(for permission: ScribePermissionKind, sourceFrameInScreen: CGRect?) {
         dismiss()
         permissionManager.refresh()
         guard !permissionManager.isGranted(permission) else {

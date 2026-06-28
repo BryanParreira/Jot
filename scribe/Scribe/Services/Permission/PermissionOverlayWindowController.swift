@@ -24,7 +24,7 @@ final class PermissionOverlayWindowController: NSWindowController {
 
     init(
         hostApp: PermissionHostApp,
-        permission: CotabbyPermissionKind,
+        permission: ScribePermissionKind,
         onDismiss: @escaping () -> Void
     ) {
         let window = PermissionOverlayPanel(
@@ -222,7 +222,7 @@ private final class PermissionOverlayContentView: NSView {
 
     init(
         hostApp: PermissionHostApp,
-        permission: CotabbyPermissionKind,
+        permission: ScribePermissionKind,
         onDismiss: @escaping () -> Void
     ) {
         self.onDismiss = onDismiss
@@ -236,7 +236,7 @@ private final class PermissionOverlayContentView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func setup(hostApp: PermissionHostApp, permission: CotabbyPermissionKind) {
+    private func setup(hostApp: PermissionHostApp, permission: ScribePermissionKind) {
         let materialView = NSVisualEffectView()
         materialView.translatesAutoresizingMaskIntoConstraints = false
         materialView.material = .popover
@@ -330,7 +330,7 @@ private final class PermissionOverlayContentView: NSView {
         ])
     }
 
-    private func title(hostApp: PermissionHostApp, permission: CotabbyPermissionKind) -> NSAttributedString {
+    private func title(hostApp: PermissionHostApp, permission: ScribePermissionKind) -> NSAttributedString {
         NSAttributedString(
             string: "Drag \(hostApp.displayName) to the list above to allow \(permission.title)",
             attributes: [

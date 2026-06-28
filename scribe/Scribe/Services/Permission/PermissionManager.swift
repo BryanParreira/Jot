@@ -118,7 +118,7 @@ final class PermissionManager: ObservableObject {
     /// makes macOS resolve that identity itself instead of relying only on a file dragged into the
     /// Settings table.
     @discardableResult
-    func requestSystemAccess(for permission: CotabbyPermissionKind) -> Bool {
+    func requestSystemAccess(for permission: ScribePermissionKind) -> Bool {
         let granted: Bool
 
         switch permission {
@@ -141,9 +141,9 @@ final class PermissionManager: ObservableObject {
 
     /// Returns the latest cached grant state for a specific permission kind.
     ///
-    /// Keeping this switch here means higher-level UI can reason in terms of `CotabbyPermissionKind`
+    /// Keeping this switch here means higher-level UI can reason in terms of `ScribePermissionKind`
     /// instead of hard-coding three separate boolean properties everywhere.
-    func isGranted(_ permission: CotabbyPermissionKind) -> Bool {
+    func isGranted(_ permission: ScribePermissionKind) -> Bool {
         switch permission {
         case .accessibility:
             accessibilityGranted
@@ -156,9 +156,9 @@ final class PermissionManager: ObservableObject {
 
     /// Core autocomplete depends on Accessibility and Input Monitoring. Screen Recording is
     /// optional (without it the app runs the text-only Fast Mode path), so it is intentionally
-    /// excluded here via `CotabbyPermissionKind.isRequiredForAutocomplete`.
+    /// excluded here via `ScribePermissionKind.isRequiredForAutocomplete`.
     var requiredPermissionsGranted: Bool {
-        CotabbyPermissionKind.allCases
+        ScribePermissionKind.allCases
             .filter(\.isRequiredForAutocomplete)
             .allSatisfy(isGranted(_:))
     }
@@ -169,11 +169,11 @@ final class PermissionManager: ObservableObject {
     /// soon as the required ones are satisfied. Does not gate autocomplete; that stays on
     /// `requiredPermissionsGranted`.
     var allPermissionsGranted: Bool {
-        CotabbyPermissionKind.allCases.allSatisfy(isGranted(_:))
+        ScribePermissionKind.allCases.allSatisfy(isGranted(_:))
     }
 
     /// Shared opener used by onboarding and the menu-bar shortcuts.
-    func openSettings(for permission: CotabbyPermissionKind) {
+    func openSettings(for permission: ScribePermissionKind) {
         NSWorkspace.shared.open(permission.settingsURL)
     }
 

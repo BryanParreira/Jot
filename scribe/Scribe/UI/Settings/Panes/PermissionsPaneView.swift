@@ -19,7 +19,7 @@ struct PermissionsPaneView: View {
 
                 SettingsPermissionRow(
                     permission: .accessibility,
-                    description: "Lets Jot see which text field has focus and read its contents " +
+                    description: "Lets Scribe see which text field has focus and read its contents " +
                         "so it knows what to continue.",
                     granted: permissionManager.accessibilityGranted,
                     permissionGuidanceController: permissionGuidanceController
@@ -28,7 +28,7 @@ struct PermissionsPaneView: View {
 
                 SettingsPermissionRow(
                     permission: .inputMonitoring,
-                    description: "Lets Jot see your keystrokes so it can detect when to suggest " +
+                    description: "Lets Scribe see your keystrokes so it can detect when to suggest " +
                         "and which key you used to accept.",
                     granted: permissionManager.inputMonitoringGranted,
                     permissionGuidanceController: permissionGuidanceController
@@ -37,8 +37,8 @@ struct PermissionsPaneView: View {
 
                 SettingsPermissionRow(
                     permission: .screenRecording,
-                    description: "Optional. Lets Jot screenshot the focused window for extra " +
-                        "context. Without it, Jot runs in Fast Mode using only the text you've typed.",
+                    description: "Optional. Lets Scribe screenshot the focused window for extra " +
+                        "context. Without it, Scribe runs in Fast Mode using only the text you've typed.",
                     granted: permissionManager.screenRecordingGranted,
                     permissionGuidanceController: permissionGuidanceController
                 )
@@ -64,7 +64,7 @@ struct PermissionsPaneView: View {
         }
         return SettingsPaneCallout(
             tone: .warning,
-            message: "Jot needs more access to run. Grant the permissions below to enable autocomplete."
+            message: "Scribe needs more access to run. Grant the permissions below to enable autocomplete."
         )
     }
 
@@ -74,7 +74,7 @@ struct PermissionsPaneView: View {
 /// `PermissionGuidanceController` can anchor its drag-helper overlay near the Enable button
 /// (mirroring the onboarding flow) instead of dumping the user into System Settings cold.
 private struct SettingsPermissionRow: View {
-    let permission: CotabbyPermissionKind
+    let permission: ScribePermissionKind
     let description: String
     let granted: Bool
     let permissionGuidanceController: PermissionGuidanceController

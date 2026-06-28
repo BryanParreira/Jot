@@ -22,7 +22,7 @@ enum SuggestionEngineKind: String, CaseIterable, Equatable, Hashable, Sendable, 
         }
     }
 
-    /// Canonical SF Symbol for the engine, following the `CotabbyPermissionKind.systemImageName`
+    /// Canonical SF Symbol for the engine, following the `ScribePermissionKind.systemImageName`
     /// precedent: one source so onboarding, the Settings Home status card, and any future surface
     /// render the same engine with the same glyph.
     var systemImageName: String {

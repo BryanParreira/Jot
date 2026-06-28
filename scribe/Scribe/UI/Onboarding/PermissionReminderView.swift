@@ -15,14 +15,14 @@ struct PermissionReminderView: View {
     let onDismiss: () -> Void
 
     /// Permissions that block core autocomplete; the reason this window exists.
-    private var requiredPermissions: [CotabbyPermissionKind] {
-        CotabbyPermissionKind.allCases.filter(\.isRequiredForAutocomplete)
+    private var requiredPermissions: [ScribePermissionKind] {
+        ScribePermissionKind.allCases.filter(\.isRequiredForAutocomplete)
     }
 
     /// Optional enhancements (Screen Recording today), shown so they stay discoverable but never
     /// gating the dismiss button.
-    private var optionalPermissions: [CotabbyPermissionKind] {
-        CotabbyPermissionKind.allCases.filter(\.isOptionalEnhancement)
+    private var optionalPermissions: [ScribePermissionKind] {
+        ScribePermissionKind.allCases.filter(\.isOptionalEnhancement)
     }
 
     var body: some View {
@@ -31,7 +31,7 @@ struct PermissionReminderView: View {
                 systemImage: "exclamationmark.shield.fill",
                 tint: .orange,
                 title: "Permissions needed",
-                subtitle: "Jot needs these permissions to work.\nGrant them in System Settings, then come back here."
+                subtitle: "Scribe needs these permissions to work.\nGrant them in System Settings, then come back here."
             )
             .onboardingReveal(0)
 
@@ -74,7 +74,7 @@ struct PermissionReminderView: View {
 /// Permission card for the reminder view. Same card chrome as onboarding, but a missing required
 /// permission goes orange so the row reads as "broken, fix me" rather than a neutral setup task.
 private struct ReminderPermissionCard: View {
-    let permission: CotabbyPermissionKind
+    let permission: ScribePermissionKind
     let granted: Bool
     var isOptional = false
     let permissionGuidanceController: PermissionGuidanceController

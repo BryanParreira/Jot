@@ -241,7 +241,7 @@ struct MenuBarView: View {
     /// keeps showing the still-missing permission until nothing is left to grant, then vanishes.
     /// Screen Recording is surfaced as a normal "(Optional)" permission row rather than hidden or
     /// shown as a feature toggle, but it never blocks autocomplete (see
-    /// `CotabbyPermissionKind.isRequiredForAutocomplete`).
+    /// `ScribePermissionKind.isRequiredForAutocomplete`).
     @ViewBuilder
     private var permissionsCard: some View {
         if !allPermissionsGranted {
@@ -250,7 +250,7 @@ struct MenuBarView: View {
                     .font(.subheadline.weight(.medium))
                     .padding(.bottom, 2)
 
-                ForEach(CotabbyPermissionKind.allCases) { permission in
+                ForEach(ScribePermissionKind.allCases) { permission in
                     PermissionRow(
                         title: permission.compactRowTitle,
                         granted: permissionManager.isGranted(permission),

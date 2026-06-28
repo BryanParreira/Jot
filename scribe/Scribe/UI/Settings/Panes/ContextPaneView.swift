@@ -42,7 +42,7 @@ struct ContextPaneView: View {
     private var livePreviewSection: some View {
         Section("Live preview") {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Type below and Jot completes as you go, using the same engine and settings " +
+                Text("Type below and Scribe completes as you go, using the same engine and settings " +
                     "it uses everywhere. Press Tab to accept the gray suggestion, Esc to dismiss.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

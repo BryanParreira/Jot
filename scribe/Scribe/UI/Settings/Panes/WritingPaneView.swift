@@ -18,7 +18,7 @@ struct WritingPaneView: View {
                 } label: {
                     SettingsRowLabel(
                         title: "Length",
-                        description: "How many words Jot aims for per suggestion. Shorter is snappier; " +
+                        description: "How many words Scribe aims for per suggestion. Shorter is snappier; " +
                             "longer covers more thoughts but takes longer to generate.",
                         systemImage: "ruler"
                     )
@@ -39,7 +39,7 @@ struct WritingPaneView: View {
                         wordCountField(value: customHighBinding, label: "Maximum word count")
                     }
                     Text("Token budget scales by your selected language. Multiple languages or a " +
-                        "language Jot doesn't recognize use the English ratio.")
+                        "language Scribe doesn't recognize use the English ratio.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -139,7 +139,7 @@ struct WritingPaneView: View {
                         Text("Name")
                             .font(.system(size: 13, weight: .medium))
 
-                        TextField("What should Jot call you?", text: Binding(
+                        TextField("What should Scribe call you?", text: Binding(
                             get: { suggestionSettings.userName },
                             set: { suggestionSettings.setUserName($0) }
                         ))

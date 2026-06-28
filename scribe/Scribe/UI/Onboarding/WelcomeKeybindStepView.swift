@@ -2,7 +2,7 @@ import SwiftUI
 
 /// File overview:
 /// The onboarding "learn your keys" step: a hero keycap that demonstrates the accept gesture, plus
-/// one row per rebindable shortcut (accept word, accept entire suggestion, toggle Cotabby). Rows
+/// one row per rebindable shortcut (accept word, accept entire suggestion, toggle Scribe). Rows
 /// reuse the real `KeyRecorderView` and write through `SuggestionSettingsModel`, so a binding
 /// recorded here is exactly the one Settings shows later.
 ///

@@ -77,24 +77,6 @@ struct AppearancePaneView: View {
                     }
                 }
 
-                Toggle(isOn: showIndicatorBinding) {
-                    SettingsRowLabel(
-                        title: "Show Field Indicator",
-                        description: "Show a small icon at the edge of a field when Jot is ready to suggest.",
-                        systemImage: "dot.viewfinder"
-                    )
-                }
-                .settingsItem(.showFieldIndicator)
-
-                Toggle(isOn: menuBarWordCountVisibleBinding) {
-                    SettingsRowLabel(
-                        title: "Show Word Count in Menu Bar",
-                        description: "Show a running count of words you've accepted next to the menu bar icon.",
-                        systemImage: "number"
-                    )
-                }
-                .settingsItem(.showWordCount)
-
                 Toggle(isOn: showAcceptanceHintBinding) {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Image(systemName: "keyboard")
@@ -233,13 +215,6 @@ struct AppearancePaneView: View {
         (SuggestionSettingsModel.minimumFadeInDuration + SuggestionSettingsModel.maximumFadeInDuration) - value
     }
 
-    private var showIndicatorBinding: Binding<Bool> {
-        Binding(
-            get: { suggestionSettings.showIndicator },
-            set: { suggestionSettings.setShowIndicator($0) }
-        )
-    }
-
     private var showAcceptanceHintBinding: Binding<Bool> {
         Binding(
             get: { suggestionSettings.showAcceptanceHint },
@@ -251,13 +226,6 @@ struct AppearancePaneView: View {
         Binding(
             get: { suggestionSettings.mirrorPreference },
             set: { suggestionSettings.setMirrorPreference($0) }
-        )
-    }
-
-    private var menuBarWordCountVisibleBinding: Binding<Bool> {
-        Binding(
-            get: { suggestionSettings.isMenuBarWordCountVisible },
-            set: { suggestionSettings.setMenuBarWordCountVisible($0) }
         )
     }
 

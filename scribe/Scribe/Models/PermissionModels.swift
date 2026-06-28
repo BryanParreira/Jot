@@ -21,7 +21,7 @@ nonisolated enum PermissionGuidanceStyle: Equatable, Sendable {
 ///
 /// This type deliberately owns metadata only. It does not know whether a permission is granted;
 /// that runtime state belongs to `PermissionManager`.
-enum CotabbyPermissionKind: String, CaseIterable, Identifiable, Sendable {
+enum ScribePermissionKind: String, CaseIterable, Identifiable, Sendable {
     case accessibility = "Privacy_Accessibility"
     case inputMonitoring = "Privacy_ListenEvent"
     case screenRecording = "Privacy_ScreenCapture"

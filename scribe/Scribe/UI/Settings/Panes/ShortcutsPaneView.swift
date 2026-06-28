@@ -129,7 +129,7 @@ struct ShortcutsPaneView: View {
                 } label: {
                     SettingsRowLabel(
                         title: "Toggle Jot",
-                        description: "Turn Jot on or off globally without opening the menu bar.",
+                        description: "Turn Scribe on or off globally without opening the menu bar.",
                         systemImage: "power.circle"
                     )
                 }
