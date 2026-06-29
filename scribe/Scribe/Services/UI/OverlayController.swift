@@ -13,9 +13,12 @@ import SwiftUI
 @MainActor
 final class OverlayController: SuggestionOverlayControlling {
     private enum Layout {
-        static let minimumGhostFontSize: CGFloat = 14
-        static let maximumGhostFontSize: CGFloat = 24
-        static let maximumEstimatedGhostFontSize: CGFloat = 16
+        static let minimumGhostFontSize: CGFloat = 13
+        static let maximumGhostFontSize: CGFloat = 20
+        static let maximumEstimatedGhostFontSize: CGFloat = 15
+        /// Hard ceiling applied AFTER sizeMultiplier so a high slider value cannot produce
+        /// comically oversized text regardless of the measured caret height.
+        static let absoluteMaximumGhostFontSize: CGFloat = 26
         static let fontToLineHeightRatio: CGFloat = 0.78
     }
 
@@ -460,7 +463,7 @@ final class OverlayController: SuggestionOverlayControlling {
             )
         }
 
-        return GhostFontMetrics.pointSize(
+        let computed = GhostFontMetrics.pointSize(
             caretHeight: caretHeight,
             fieldMetrics: fieldMetrics,
             fallbackRatio: Layout.fontToLineHeightRatio,
@@ -468,6 +471,7 @@ final class OverlayController: SuggestionOverlayControlling {
             maximum: qualityCap,
             sizeMultiplier: CGFloat(suggestionSettings.ghostTextSizeMultiplier)
         )
+        return min(computed, Layout.absoluteMaximumGhostFontSize)
     }
 
     /// Builds the host field's `NSFont` from a resolved style, or nil when the name is missing or the

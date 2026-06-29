@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>Scribe</title>
-    <link>https://raw.githubusercontent.com/BryanParreira/Scribe/main/appcast.xml</link>
+    <link>https://raw.githubusercontent.com/BryanParreira/Scribe/main/scribe/appcast.xml</link>
     <description>Scribe — on-device inline autocomplete for macOS</description>
     <language>en</language>
     <item>
@@ -13,8 +13,8 @@
       <sparkle:releaseNotesLink>https://github.com/BryanParreira/Scribe/releases/tag/v1.0.11</sparkle:releaseNotesLink>
       <enclosure
         url="https://github.com/BryanParreira/Scribe/releases/download/v1.0.11/Scribe-1.0.11.dmg"
-        sparkle:edSignature="EJ+AUo+q/p9hj/Zb35cJDHBTN1ea289VQdJRCes+g5gx0IgKfi2fH+wRMjlqoGPdvA8P2oleR8RvckraAc99BQ=="
-        length="12881173"
+        sparkle:edSignature="St7u0Ypze9l9TBW5odrrWSISjDQ3QRaBrKw3rqAY4JHyHPpnM+ZWfx/yjrBJEKte44pNeYEpb+kSRIvOn1trAQ=="
+        length="12881122"
         type="application/octet-stream" />
     </item>
   </channel>
