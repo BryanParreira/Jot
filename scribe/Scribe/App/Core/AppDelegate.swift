@@ -191,23 +191,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         runtimeModel.shutdownSync(timeoutSeconds: 1.5)
     }
 
-    /// Shows or hides the field-edge Cotabby icon based on focus state, global enable, per-app
-    /// disable rules, and the user's indicator toggle.
+    /// Field-edge indicator is disabled — it caused glitching on certain layouts.
     private func updateActivationIndicator(for snapshot: FocusSnapshot) {
-        guard suggestionSettings.isGloballyEnabled,
-              !suggestionSettings.isApplicationDisabled(bundleIdentifier: snapshot.bundleIdentifier),
-              case .supported = snapshot.capability,
-              let context = snapshot.context
-        else {
-            activationIndicatorController.hide(reason: "Activation indicator hidden.")
-            return
-        }
-
-        activationIndicatorController.show(
-            enabled: suggestionSettings.showIndicator,
-            caretRect: context.caretRect,
-            inputFrameRect: context.inputFrameRect
-        )
+        activationIndicatorController.hide(reason: "Activation indicator disabled.")
     }
 
     /// Warm the local runtime only when the user is actually on a local engine path.
