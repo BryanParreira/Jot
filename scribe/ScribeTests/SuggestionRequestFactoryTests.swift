@@ -28,10 +28,20 @@ final class SuggestionRequestFactoryTests: XCTestCase {
         XCTAssertFalse(SuggestionRequestFactory.shouldGenerateSuggestion(for: " \n\t \n  "))
     }
 
-    // MARK: - meaningful inputs
+    // MARK: - below minimum threshold
 
-    func test_shouldGenerate_trueForSingleCharacter() {
-        XCTAssertTrue(SuggestionRequestFactory.shouldGenerateSuggestion(for: "a"))
+    func test_shouldGenerate_falseForSingleCharacter() {
+        XCTAssertFalse(SuggestionRequestFactory.shouldGenerateSuggestion(for: "a"))
+    }
+
+    func test_shouldGenerate_falseForTwoCharacters() {
+        XCTAssertFalse(SuggestionRequestFactory.shouldGenerateSuggestion(for: "hi"))
+    }
+
+    // MARK: - at or above minimum threshold
+
+    func test_shouldGenerate_trueForThreeCharacters() {
+        XCTAssertTrue(SuggestionRequestFactory.shouldGenerateSuggestion(for: "the"))
     }
 
     func test_shouldGenerate_trueForPartialWord() {

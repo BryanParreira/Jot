@@ -41,12 +41,10 @@ nonisolated enum DebouncePolicy {
             case ...100:
                 // Rapid burst — user mid-word or mid-phrase; hold a bit longer.
                 typingAdjustment = 25
-            case ...350:
-                // Normal pacing — no adjustment.
-                typingAdjustment = 0
             default:
-                // Paused — user finished a thought; cut the wait.
-                typingAdjustment = -10
+                // Normal or paused pacing — no adjustment. We deliberately do not cut the wait
+                // on pause so suggestions do not fire during idle moments between keystrokes.
+                typingAdjustment = 0
             }
         } else {
             typingAdjustment = 0

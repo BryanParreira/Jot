@@ -20,12 +20,15 @@ struct SuggestionRequestBuildResult: Equatable, Sendable {
 enum SuggestionRequestFactory {
     private static let maxClipboardContextCharacters = 1_200
 
-    /// Require at least one non-whitespace character so we don't suggest on a blank field.
-    /// No trailing-space gate — the debounce handles rapid keystroke settling, and
-    /// `SuggestionTextNormalizer` applies deterministic space management on the output side.
+    /// Require at least one word's worth of text before generating a suggestion.
+    ///
+    /// A bare 1-2 char fragment is too little context for a useful completion and also causes Tab
+    /// to be consumed in situations where the user intended normal Tab behavior (form navigation,
+    /// indentation). Requiring 3+ trimmed characters ensures Scribe does not compete with system
+    /// Tab behavior in nearly-empty fields while still triggering on short words like "the" or "you".
     static func shouldGenerateSuggestion(for precedingText: String) -> Bool {
         let trimmed = precedingText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !trimmed.isEmpty
+        return trimmed.count >= 3
     }
 
     /// Builds the generation request plus the exact prompt preview used by Scribe's diagnostics UI.
